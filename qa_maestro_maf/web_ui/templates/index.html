@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic QA Maestro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1f2937;
+            --bg-card-hover: #263244;
+            --bg-input: #0f1629;
+            --border: #374151;
+            --border-focus: #3b82f6;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --success-bg: #064e3b;
+            --danger: #ef4444;
+            --danger-bg: #7f1d1d;
+            --warning: #f59e0b;
+            --warning-bg: #78350f;
+            --purple: #8b5cf6;
+            --sidebar-width: 260px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; display: flex; }
+
+        /* Sidebar */
+        .sidebar { width: var(--sidebar-width); background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; }
+        .sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-brand h1 { font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+        .sidebar-brand p { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 400; }
+        .sidebar-nav { flex: 1; padding: 16px 12px; }
+        .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-secondary); transition: all 0.15s; margin-bottom: 4px; }
+        .nav-item:hover { background: var(--bg-card); color: var(--text-primary); }
+        .nav-item.active { background: var(--accent); color: white; }
+        .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+        .sidebar-footer .status { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .status-dot.offline { background: var(--danger); }
+
+        /* Main Content */
+        .main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        .topbar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 16px; background: var(--bg-secondary); }
+        .topbar h2 { font-size: 16px; font-weight: 600; }
+        .topbar .breadcrumb { font-size: 12px; color: var(--text-muted); }
+        .topbar .actions { margin-left: auto; display: flex; gap: 8px; }
+
+        .content { flex: 1; padding: 24px 32px; overflow-y: auto; }
+
+        /* Pages */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* Pipeline Page */
+        .pipeline-grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; height: calc(100vh - 140px); }
+        .pipeline-left { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .pipeline-right { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+
+        /* Cards */
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .card-header h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+        .card-header .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+        .card-body { padding: 20px; }
+
+        /* Form */
+        .form-row { margin-bottom: 16px; }
+        .form-row label { display: block; font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 6px; }
+        .form-row input, .form-row select { width: 100%; padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 13px; font-family: inherit; transition: border-color 0.15s; }
+        .form-row input:focus, .form-row select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .form-row input::placeholder { color: var(--text-muted); }
+        .form-row .hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+        /* Buttons */
+        .btn { padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; transition: all 0.15s; border: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-primary:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: var(--danger-bg); }
+        .btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .btn-full { width: 100%; justify-content: center; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* Phase Tracker */
+        .phase-tracker { padding: 4px 0; }
+        .phase-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; position: relative; }
+        .phase-item:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 36px; bottom: -4px; width: 2px; background: var(--border); }
+        .phase-item.completed:not(:last-child)::after { background: var(--success); }
+        .phase-item.active:not(:last-child)::after { background: linear-gradient(to bottom, var(--accent), var(--border)); }
+        .phase-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: var(--bg-input); border: 2px solid var(--border); color: var(--text-muted); flex-shrink: 0; z-index: 1; transition: all 0.3s; }
+        .phase-item.active .phase-dot { background: var(--accent); border-color: var(--accent); color: white; animation: pulse 2s infinite; }
+        .phase-item.completed .phase-dot { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+        .phase-item.failed .phase-dot { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+        .phase-info { flex: 1; }
+        .phase-info .phase-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .phase-item.active .phase-title { color: var(--text-primary); }
+        .phase-item.completed .phase-title { color: var(--success); }
+        .phase-info .phase-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); } 50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); } }
+
+        /* Output Console */
+        .console { height: 380px; overflow-y: auto; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; }
+        .console-line { padding: 4px 0; border-bottom: 1px solid rgba(55, 65, 81, 0.3); }
+        .console-line .timestamp { color: var(--text-muted); font-size: 10px; margin-right: 8px; }
+        .console-line .agent { color: var(--accent); font-weight: 500; }
+        .console-line .tool { color: var(--warning); }
+        .console-line .content { color: var(--text-secondary); }
+        .console-line.phase-line { color: var(--purple); font-weight: 600; padding: 8px 0; }
+        .console-line.error-line { color: var(--danger); }
+        .console-placeholder { color: var(--text-muted); text-align: center; padding-top: 160px; font-family: 'Inter', sans-serif; font-size: 13px; }
+
+        /* Results Table */
+        .results-container { max-height: 280px; overflow-y: auto; }
+        .tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .tbl th { text-align: left; padding: 10px 12px; background: var(--bg-secondary); color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; }
+        .tbl td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+        .tbl tr:hover td { background: var(--bg-card-hover); }
+        .status-badge { padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .status-badge.pass { background: var(--success-bg); color: var(--success); }
+        .status-badge.fail { background: var(--danger-bg); color: var(--danger); }
+        .status-badge.blocked { background: var(--warning-bg); color: var(--warning); }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .stat-card { background: var(--bg-secondary); border-radius: 8px; padding: 14px 16px; text-align: center; }
+        .stat-card .stat-value { font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .stat-card .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+        .stat-card.stat-pass .stat-value { color: var(--success); }
+        .stat-card.stat-fail .stat-value { color: var(--danger); }
+        .stat-card.stat-time .stat-value { color: var(--purple); font-size: 18px; }
+
+        /* Bug List */
+        .bug-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+        .bug-item:last-child { border-bottom: none; }
+        .bug-icon { width: 28px; height: 28px; border-radius: 6px; background: var(--danger-bg); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+        .bug-item .bug-key { font-weight: 600; color: var(--accent); font-size: 13px; }
+        .bug-item .bug-summary { font-size: 12px; color: var(--text-secondary); }
+
+        /* Settings Page */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; }
+        .settings-section { margin-bottom: 24px; }
+        .settings-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .settings-section h4 svg { width: 16px; height: 16px; color: var(--accent); }
+        .saved-toast { position: fixed; bottom: 24px; right: 24px; background: var(--success-bg); color: var(--success); padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; display: none; z-index: 1000; border: 1px solid var(--success); }
+
+        /* Responsive */
+        @media (max-width: 1100px) {
+            .pipeline-grid { grid-template-columns: 1fr; }
+            .settings-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main { margin-left: 0; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>Agentic QA Maestro</h1>
+            <p>Powered by Multi-Agent Framework &mdash; Microsoft</p>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" onclick="showPage('pipeline')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                Pipeline
+            </div>
+            <div class="nav-item" onclick="showPage('results')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><path d="M9 14l2 2 4-4"/></svg>
+                Results
+            </div>
+            <div class="nav-item" onclick="showPage('settings')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                Settings
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="status">
+                <span class="status-dot online" id="sidebar-dot"></span>
+                <span id="sidebar-status">Connecting...</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+        <div class="topbar">
+            <h2 id="page-title">E2E Test Pipeline</h2>
+            <span class="breadcrumb" id="page-breadcrumb">Run automated QA tests from JIRA tickets</span>
+            <div class="actions">
+                <span id="timer" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;"></span>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Pipeline Page -->
+            <div class="page active" id="page-pipeline">
+                <div class="pipeline-grid">
+                    <div class="pipeline-left">
+                        <!-- Config Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Configuration</h3>
+                                <span class="badge" style="background: var(--bg-secondary); color: var(--text-muted);">Required</span>
+                            </div>
+                            <div class="card-body">
+                                <form id="pipeline-form" onsubmit="runPipeline(event)">
+                                    <div class="form-row">
+                                        <label>JIRA Ticket</label>
+                                        <input type="text" id="input-ticket" placeholder="PROJ-12345" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <label>Target Application URL</label>
+                                        <input type="url" id="input-url" placeholder="https://app.example.com/login" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <label>Application Username</label>
+                                        <input type="text" id="input-username" placeholder="Enter username" required>
+                                    </div>
+                                    <div class="form-row">
+                                        <label>Application Password</label>
+                                        <input type="password" id="input-password" placeholder="Enter password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-full" id="btn-run">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        Run E2E Pipeline
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-full" id="btn-stop" style="display:none; margin-top: 8px;" onclick="stopPipeline()">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+                                        Stop Pipeline
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Phase Tracker Card -->
+                        <div class="card">
+                            <div class="card-header"><h3>Phase Progress</h3></div>
+                            <div class="card-body">
+                                <div class="phase-tracker" id="phase-tracker">
+                                    <div class="phase-item" data-phase="1"><div class="phase-dot">1</div><div class="phase-info"><div class="phase-title">Requirement Analysis</div><div class="phase-meta">JIRA fetch &amp; AC extraction</div></div></div>
+                                    <div class="phase-item" data-phase="2"><div class="phase-dot">2</div><div class="phase-info"><div class="phase-title">App Discovery</div><div class="phase-meta">Browser navigation &amp; UI recon</div></div></div>
+                                    <div class="phase-item" data-phase="3"><div class="phase-dot">3</div><div class="phase-info"><div class="phase-title">Test Generation</div><div class="phase-meta">AI-powered test case creation</div></div></div>
+                                    <div class="phase-item" data-phase="4"><div class="phase-dot">4</div><div class="phase-info"><div class="phase-title">Test Execution</div><div class="phase-meta">Automated browser testing</div></div></div>
+                                    <div class="phase-item" data-phase="5"><div class="phase-dot">5</div><div class="phase-info"><div class="phase-title">Bug Reporting</div><div class="phase-meta">JIRA defect creation</div></div></div>
+                                    <div class="phase-item" data-phase="6"><div class="phase-dot">6</div><div class="phase-info"><div class="phase-title">Cleanup</div><div class="phase-meta">Browser close &amp; summary</div></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pipeline-right">
+                        <!-- Console Card -->
+                        <div class="card" style="flex: 1;">
+                            <div class="card-header">
+                                <h3>Agent Console</h3>
+                                <button class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear</button>
+                            </div>
+                            <div class="card-body" style="padding: 12px;">
+                                <div class="console" id="console">
+                                    <div class="console-placeholder">Waiting for pipeline execution...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bugs Card -->
+                        <div class="card" id="bugs-card" style="display: none;">
+                            <div class="card-header"><h3>Defects Raised</h3><span class="badge" style="background: var(--danger-bg); color: var(--danger);" id="bug-count">0</span></div>
+                            <div class="card-body" id="bug-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Page -->
+            <div class="page" id="page-results">
+                <div class="stats-row" id="stats-row">
+                    <div class="stat-card"><div class="stat-value" id="r-total">0</div><div class="stat-label">Total Tests</div></div>
+                    <div class="stat-card stat-pass"><div class="stat-value" id="r-pass">0</div><div class="stat-label">Passed</div></div>
+                    <div class="stat-card stat-fail"><div class="stat-value" id="r-fail">0</div><div class="stat-label">Failed</div></div>
+                    <div class="stat-card stat-time"><div class="stat-value" id="r-duration">--</div><div class="stat-label">Duration</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Test Execution Results</h3></div>
+                    <div class="card-body">
+                        <div class="results-container">
+                            <table class="tbl" id="results-table">
+                                <thead><tr><th>ID</th><th>Test Case</th><th>Priority</th><th>Status</th><th>Evidence</th></tr></thead>
+                                <tbody id="results-body">
+                                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">No test results yet. Run a pipeline to see results.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="page-settings">
+                <div class="settings-grid">
+                    <div>
+                        <div class="card">
+                            <div class="card-header"><h3>Azure OpenAI</h3></div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <label>Endpoint</label>
+                                    <input type="url" id="set-azure-endpoint" placeholder="https://your-resource.openai.azure.com/">
+                                    <div class="hint">Your Azure OpenAI resource endpoint</div>
+                                </div>
+                                <div class="form-row">
+                                    <label>API Key</label>
+                                    <input type="password" id="set-azure-key" placeholder="Enter API key">
+                                </div>
+                                <div class="form-row">
+                                    <label>Model / Deployment</label>
+                                    <input type="text" id="set-azure-model" placeholder="gpt-4.1">
+                                </div>
+                                <div class="form-row">
+                                    <label>API Version</label>
+                                    <input type="text" id="set-azure-version" placeholder="2024-12-01-preview">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <div class="card-header"><h3>JIRA Integration</h3></div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <label>JIRA Base URL</label>
+                                    <input type="url" id="set-jira-url" placeholder="https://jira.example.com">
+                                </div>
+                                <div class="form-row">
+                                    <label>Personal Access Token (PAT)</label>
+                                    <input type="password" id="set-jira-pat" placeholder="Enter JIRA PAT">
+                                    <div class="hint">Generate from JIRA &rarr; Profile &rarr; Personal Access Tokens</div>
+                                </div>
+                                <div class="form-row">
+                                    <label>Project Key</label>
+                                    <input type="text" id="set-jira-project" placeholder="e.g. SACP">
+                                    <div class="hint">Default project for bug creation</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-top: 16px;">
+                            <div class="card-header"><h3>Browser / Playwright</h3></div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <label>Headless Mode</label>
+                                    <select id="set-headless">
+                                        <option value="true">Headless (no visible browser)</option>
+                                        <option value="false">Headed (visible browser window)</option>
+                                    </select>
+                                </div>
+                                <div class="form-row">
+                                    <label>Screenshot Directory</label>
+                                    <input type="text" id="set-screenshot-dir" placeholder="test_evidence/" value="test_evidence/">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveSettings()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Save Settings
+                    </button>
+                    <button class="btn btn-secondary" style="margin-left: 8px;" onclick="loadSettings()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="saved-toast" id="saved-toast">Settings saved successfully</div>
+
+    <script>
+        let pipelineRunning = false;
+        let startTime = null;
+        let timerInterval = null;
+        let currentPhase = 0;
+        let testResults = [];
+        let bugsList = [];
+
+        // Navigation
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            document.querySelectorAll('.nav-item')[{pipeline:0, results:1, settings:2}[page]].classList.add('active');
+            const titles = {pipeline: 'E2E Test Pipeline', results: 'Test Results', settings: 'Settings'};
+            const breadcrumbs = {pipeline: 'Run automated QA tests from JIRA tickets', results: 'View test execution history and outcomes', settings: 'Configure integrations and credentials'};
+            document.getElementById('page-title').textContent = titles[page];
+            document.getElementById('page-breadcrumb').textContent = breadcrumbs[page];
+        }
+
+        // Status
+        async function loadStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                const dot = document.getElementById('sidebar-dot');
+                const txt = document.getElementById('sidebar-status');
+                if (data.status === 'running') {
+                    dot.className = 'status-dot online';
+                    txt.textContent = data.agents.length + ' agents ready';
+                } else {
+                    dot.className = 'status-dot offline';
+                    txt.textContent = 'Not initialized';
+                }
+            } catch (e) {
+                document.getElementById('sidebar-dot').className = 'status-dot offline';
+                document.getElementById('sidebar-status').textContent = 'Offline';
+            }
+        }
+
+        // Phase management
+        function setPhase(num, state) {
+            document.querySelectorAll('.phase-item').forEach(p => {
+                const pn = parseInt(p.dataset.phase);
+                if (pn === num) {
+                    p.className = 'phase-item ' + state;
+                    if (state === 'active') p.querySelector('.phase-meta').textContent = 'In progress...';
+                    else if (state === 'completed') p.querySelector('.phase-meta').textContent = 'Completed';
+                    else if (state === 'failed') p.querySelector('.phase-meta').textContent = 'Failed';
+                }
+            });
+        }
+
+        // Console
+        function addConsoleLine(agent, content, type) {
+            const el = document.getElementById('console');
+            if (el.querySelector('.console-placeholder')) el.innerHTML = '';
+            const div = document.createElement('div');
+            const ts = new Date().toLocaleTimeString('en-US', {hour12: false});
+            if (type === 'phase') {
+                div.className = 'console-line phase-line';
+                div.innerHTML = '<span class="timestamp">' + ts + '</span> ' + content;
+            } else if (type === 'tool') {
+                div.className = 'console-line';
+                div.innerHTML = '<span class="timestamp">' + ts + '</span> <span class="agent">[' + agent + ']</span> <span class="tool">\u2192 ' + content + '</span>';
+            } else if (type === 'error') {
+                div.className = 'console-line error-line';
+                div.innerHTML = '<span class="timestamp">' + ts + '</span> ERROR: ' + content;
+            } else {
+                div.className = 'console-line';
+                div.innerHTML = '<span class="timestamp">' + ts + '</span> <span class="agent">[' + agent + ']</span> <span class="content">' + content + '</span>';
+            }
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function clearConsole() { document.getElementById('console').innerHTML = '<div class="console-placeholder">Waiting for pipeline execution...</div>'; }
+
+        // Test Results
+        function addTestResult(id, title, status, evidence) {
+            testResults.push({id, title, status, evidence});
+            const tbody = document.getElementById('results-body');
+            if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+            const cls = status === 'PASS' ? 'pass' : status === 'FAIL' ? 'fail' : 'blocked';
+            const row = document.createElement('tr');
+            row.innerHTML = '<td style="font-weight:600;">' + id + '</td><td>' + title + '</td><td>High</td><td><span class="status-badge ' + cls + '">' + status + '</span></td><td>' + (evidence || '\u2014') + '</td>';
+            tbody.appendChild(row);
+        }
+
+        function updateStats() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.status === 'PASS').length;
+            const failed = total - passed;
+            document.getElementById('r-total').textContent = total;
+            document.getElementById('r-pass').textContent = passed;
+            document.getElementById('r-fail').textContent = failed;
+        }
+
+        // Bugs
+        function addBug(key, summary) {
+            bugsList.push({key, summary});
+            const card = document.getElementById('bugs-card');
+            card.style.display = 'block';
+            document.getElementById('bug-count').textContent = bugsList.length;
+            const div = document.createElement('div');
+            div.className = 'bug-item';
+            div.innerHTML = '<div class="bug-icon">\uD83D\uDC1B</div><div><div class="bug-key">' + key + '</div><div class="bug-summary">' + summary + '</div></div>';
+            document.getElementById('bug-list').appendChild(div);
+        }
+
+        // Timer
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const s = Math.floor((Date.now() - startTime) / 1000);
+                const m = Math.floor(s / 60);
+                const sec = s % 60;
+                const str = (m > 0 ? m + 'm ' : '') + sec + 's';
+                document.getElementById('timer').textContent = '\u23F1 ' + str;
+                document.getElementById('r-duration').textContent = str;
+            }, 1000);
+        }
+        function stopTimer() { if (timerInterval) clearInterval(timerInterval); }
+
+        // Pipeline Execution
+        async function runPipeline(event) {
+            event.preventDefault();
+            if (pipelineRunning) return;
+
+            const ticket = document.getElementById('input-ticket').value;
+            const url = document.getElementById('input-url').value;
+            const username = document.getElementById('input-username').value;
+            const password = document.getElementById('input-password').value;
+            if (!ticket || !url || !username || !password) return;
+
+            pipelineRunning = true;
+            currentPhase = 0;
+            testResults = [];
+            bugsList = [];
+            document.getElementById('btn-run').disabled = true;
+            document.getElementById('btn-stop').style.display = 'flex';
+            document.getElementById('console').innerHTML = '';
+            document.getElementById('results-body').innerHTML = '';
+            document.getElementById('bugs-card').style.display = 'none';
+            document.getElementById('bug-list').innerHTML = '';
+            document.querySelectorAll('.phase-item').forEach(p => { p.className = 'phase-item'; });
+
+            startTimer();
+            addConsoleLine('system', 'Pipeline started for ' + ticket, 'phase');
+
+            try {
+                const res = await fetch('/api/pipeline', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticket, url, username, password}),
+                });
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, {stream: true});
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const json = line.slice(6);
+                        if (json === '[DONE]') continue;
+                        try { handleEvent(JSON.parse(json)); } catch(e) {}
+                    }
+                }
+            } catch(err) {
+                addConsoleLine('system', err.message, 'error');
+            } finally {
+                pipelineRunning = false;
+                document.getElementById('btn-run').disabled = false;
+                document.getElementById('btn-stop').style.display = 'none';
+                stopTimer();
+                updateStats();
+            }
+        }
+
+        function handleEvent(ev) {
+            switch(ev.type) {
+                case 'phase_start':
+                    if (currentPhase > 0) setPhase(currentPhase, 'completed');
+                    currentPhase = ev.phase;
+                    setPhase(ev.phase, 'active');
+                    addConsoleLine('system', 'PHASE ' + ev.phase + ' \u2014 ' + ev.name, 'phase');
+                    break;
+                case 'phase_end':
+                    setPhase(ev.phase, ev.status === 'ok' ? 'completed' : 'failed');
+                    break;
+                case 'agent_message':
+                    addConsoleLine(ev.agent, ev.content, '');
+                    break;
+                case 'tool_call':
+                    addConsoleLine(ev.agent, ev.tool, 'tool');
+                    break;
+                case 'test_result':
+                    addTestResult(ev.id, ev.title, ev.status, ev.evidence);
+                    break;
+                case 'test_summary':
+                    updateStats();
+                    break;
+                case 'bug_created':
+                    addBug(ev.key, ev.summary);
+                    break;
+                case 'pipeline_complete':
+                    addConsoleLine('system', 'Pipeline complete \u2014 ' + ev.summary, 'phase');
+                    if (currentPhase > 0) setPhase(currentPhase, 'completed');
+                    break;
+                case 'error':
+                    addConsoleLine('system', ev.message, 'error');
+                    break;
+            }
+        }
+
+        function stopPipeline() {
+            fetch('/api/pipeline/stop', {method: 'POST'});
+            pipelineRunning = false;
+            document.getElementById('btn-run').disabled = false;
+            document.getElementById('btn-stop').style.display = 'none';
+            stopTimer();
+            addConsoleLine('system', 'Pipeline cancelled by user', 'phase');
+        }
+
+        // Settings
+        function saveSettings() {
+            const settings = {
+                azure_endpoint: document.getElementById('set-azure-endpoint').value,
+                azure_key: document.getElementById('set-azure-key').value,
+                azure_model: document.getElementById('set-azure-model').value,
+                azure_version: document.getElementById('set-azure-version').value,
+                jira_url: document.getElementById('set-jira-url').value,
+                jira_pat: document.getElementById('set-jira-pat').value,
+                jira_project: document.getElementById('set-jira-project').value,
+                headless: document.getElementById('set-headless').value,
+                screenshot_dir: document.getElementById('set-screenshot-dir').value,
+            };
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(settings),
+            }).then(() => {
+                const toast = document.getElementById('saved-toast');
+                toast.style.display = 'block';
+                setTimeout(() => toast.style.display = 'none', 3000);
+            });
+        }
+
+        function loadSettings() {
+            fetch('/api/settings').then(r => r.json()).then(s => {
+                if (s.azure_endpoint) document.getElementById('set-azure-endpoint').value = s.azure_endpoint;
+                if (s.azure_model) document.getElementById('set-azure-model').value = s.azure_model;
+                if (s.azure_version) document.getElementById('set-azure-version').value = s.azure_version;
+                if (s.jira_url) document.getElementById('set-jira-url').value = s.jira_url;
+                if (s.jira_project) document.getElementById('set-jira-project').value = s.jira_project;
+                if (s.headless) document.getElementById('set-headless').value = s.headless;
+                if (s.screenshot_dir) document.getElementById('set-screenshot-dir').value = s.screenshot_dir;
+            });
+        }
+
+        loadStatus();
+        loadSettings();
+        setInterval(loadStatus, 15000);
+    </script>
+</body>
+</html>

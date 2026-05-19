@@ -1,0 +1,23 @@
+# E2E Test Pipeline Scenario for JIRA User Stories
+
+scenario:
+  name: "JIRA E2E Test Pipeline"
+  description: "End-to-end test pipeline triggered by a JIRA user story"
+
+pipeline:
+  type: sequential
+  steps:
+    - agent: jira_agent
+      task: "ANALYZE: Fetch the JIRA user story {jira_ticket} and extract all acceptance criteria..."
+
+    - agent: browser_agent
+      task: "DISCOVER: Navigate to {target_url} and perform a quick recon..."
+
+    - agent: orchestrator
+      task: "GENERATE: Based on the JIRA acceptance criteria and the app discovery report, generate test cases..."
+
+    - agent: browser_agent
+      task: "EXECUTE: Run the generated test cases against {target_url} using Playwright..."
+
+    - agent: jira_agent
+      task: "REPORT: Summarize the test execution results. For any failed tests, create bug tickets..."
