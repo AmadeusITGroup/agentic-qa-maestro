@@ -52,9 +52,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nickmab/agentic-qa-maestro"
-Repository = "https://github.com/nickmab/agentic-qa-maestro"
-Issues = "https://github.com/nickmab/agentic-qa-maestro/issues"
+Homepage = "https://github.com/AmadeusITGroup/agentic-qa-maestro"
+Repository = "https://github.com/AmadeusITGroup/agentic-qa-maestro"
+Issues = "https://github.com/AmadeusITGroup/agentic-qa-maestro/issues"
 
 [project.scripts]
 qa-maestro = "qa_maestro_maf.main:main"

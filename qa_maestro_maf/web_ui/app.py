@@ -150,26 +150,76 @@ def _detect_phase(text: str) -> Optional[int]:
 def _parse_test_results(text: str) -> List[Dict[str, str]]:
     """Try to extract test results from agent output."""
     results = []
-    pattern = re.compile(
-        r"\|\s*(TC\d+)\s*\|\s*(.+?)\s*\|\s*(PASS|FAIL|BLOCKED)\s*\|",
+    seen_ids = set()
+
+    # Pattern 1: Table format | TC001 | Title | PASS |
+    pattern1 = re.compile(
+        r"\|\s*(TC[-_]?\d+)\s*\|\s*(.+?)\s*\|\s*(PASS|FAIL|BLOCKED)\s*\|",
         re.IGNORECASE,
     )
-    for match in pattern.finditer(text):
-        results.append({
-            "id": match.group(1),
-            "title": match.group(2).strip(),
-            "status": match.group(3).upper(),
-            "evidence": "",
-        })
+    for match in pattern1.finditer(text):
+        tid = match.group(1).upper()
+        if tid not in seen_ids:
+            seen_ids.add(tid)
+            results.append({"id": tid, "title": match.group(2).strip(), "status": match.group(3).upper(), "evidence": ""})
+
+    # Pattern 2: TC001: Title - PASS or TC001 - Title: PASS
+    pattern2 = re.compile(
+        r"(TC[-_]?\d+)\s*[-:]\s*(.+?)\s*[-:–—]\s*(PASS|FAIL|BLOCKED|PASSED|FAILED)",
+        re.IGNORECASE,
+    )
+    for match in pattern2.finditer(text):
+        tid = match.group(1).upper()
+        if tid not in seen_ids:
+            seen_ids.add(tid)
+            status = match.group(3).upper().rstrip("ED")  # PASSED -> PASS, FAILED -> FAIL
+            if status == "FAIL":
+                status = "FAIL"
+            elif status == "PASS":
+                status = "PASS"
+            results.append({"id": tid, "title": match.group(2).strip(), "status": status, "evidence": ""})
+
+    # Pattern 3: **TC001** ... PASS/FAIL or "TC001" ... PASS/FAIL (within same line)
+    pattern3 = re.compile(
+        r"\*{0,2}(TC[-_]?\d+)\*{0,2}\s*[:\-–—]?\s*(.+?)\s*(?:Result|Status|Outcome)?\s*[:=]?\s*(PASS|FAIL|BLOCKED|PASSED|FAILED)",
+        re.IGNORECASE,
+    )
+    for match in pattern3.finditer(text):
+        tid = match.group(1).upper()
+        if tid not in seen_ids:
+            seen_ids.add(tid)
+            status = "PASS" if "PASS" in match.group(3).upper() else "FAIL"
+            results.append({"id": tid, "title": match.group(2).strip().rstrip("-:– "), "status": status, "evidence": ""})
+
+    # Pattern 4: "Test N" or "Test Case N" ... PASS/FAIL (no TC prefix)
+    if not results:
+        pattern4 = re.compile(
+            r"(?:Test(?:\s+Case)?\s+(\d+))\s*[-:]\s*(.+?)\s*[-:–—]\s*(PASS|FAIL|BLOCKED|PASSED|FAILED)",
+            re.IGNORECASE,
+        )
+        for match in pattern4.finditer(text):
+            tid = f"TC{match.group(1)}"
+            if tid not in seen_ids:
+                seen_ids.add(tid)
+                status = "PASS" if "PASS" in match.group(3).upper() else "FAIL"
+                results.append({"id": tid, "title": match.group(2).strip(), "status": status, "evidence": ""})
+
     return results
 
 
 def _parse_bugs(text: str) -> List[Dict[str, str]]:
     """Try to extract created bug ticket keys from agent output."""
     bugs = []
-    pattern = re.compile(r"(SACP-\d+|[A-Z]+-\d+):\s*(.+?)(?:\n|$)")
+    # Match JIRA keys like SACP-12345 followed by summary text
+    pattern = re.compile(r"([A-Z][A-Z0-9]+-\d+)\s*[-:–—]\s*(.+?)(?:\n|$)")
     for match in pattern.finditer(text):
         bugs.append({"key": match.group(1), "summary": match.group(2).strip()})
+    # Also match "created bug SACP-12345" or "filed SACP-12345"
+    pattern2 = re.compile(r"(?:created|filed|logged|raised)\s+(?:bug\s+)?([A-Z][A-Z0-9]+-\d+)", re.IGNORECASE)
+    for match in pattern2.finditer(text):
+        key = match.group(1)
+        if not any(b["key"] == key for b in bugs):
+            bugs.append({"key": key, "summary": "Bug filed during test execution"})
     return bugs
 
 
@@ -228,6 +278,8 @@ async def _pipeline_stream(ticket: str, url: str, username: str, password: str) 
     total_tests = 0
     passed_tests = 0
     failed_tests = 0
+    seen_test_ids = set()
+    seen_bug_keys = set()
 
     try:
         async for event in workflow.run(prompt, stream=True):
@@ -237,12 +289,29 @@ async def _pipeline_stream(ticket: str, url: str, username: str, password: str) 
 
             if event.type == "output":
                 data = event.data
+                text_to_process = []
+
                 if isinstance(data, AgentResponseUpdate):
                     agent_name = data.author_name or "agent"
                     text = data.text or ""
+                    if text.strip():
+                        text_to_process.append((agent_name, text))
 
-                    if not text.strip():
-                        continue
+                elif isinstance(data, list):
+                    for msg in data:
+                        if isinstance(msg, Message):
+                            agent_name = msg.author_name or msg.role or "agent"
+                            text = msg.text or ""
+                            if text.strip():
+                                text_to_process.append((agent_name, text))
+
+                elif isinstance(data, Message):
+                    agent_name = data.author_name or data.role or "agent"
+                    text = data.text or ""
+                    if text.strip():
+                        text_to_process.append((agent_name, text))
+
+                for agent_name, text in text_to_process:
 
                     # Detect phase transitions
                     detected = _detect_phase(text)
@@ -259,6 +328,9 @@ async def _pipeline_stream(ticket: str, url: str, username: str, password: str) 
                     # Try to parse test results
                     results = _parse_test_results(text)
                     for r in results:
+                        if r["id"] in seen_test_ids:
+                            continue
+                        seen_test_ids.add(r["id"])
                         total_tests += 1
                         if r["status"] == "PASS":
                             passed_tests += 1
@@ -269,6 +341,9 @@ async def _pipeline_stream(ticket: str, url: str, username: str, password: str) 
                     # Try to parse bug tickets
                     bugs = _parse_bugs(text)
                     for b in bugs:
+                        if b["key"] in seen_bug_keys:
+                            continue
+                        seen_bug_keys.add(b["key"])
                         yield _sse_event({"type": "bug_created", **b})
 
                     await asyncio.sleep(0)  # yield control

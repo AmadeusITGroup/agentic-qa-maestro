@@ -10,7 +10,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/nickmab/agentic-qa-maestro.git
+git clone https://github.com/AmadeusITGroup/agentic-qa-maestro.git
 cd agentic-qa-maestro
 
 # Create and activate virtual environment
@@ -31,9 +31,12 @@ cp example.env .env
 Edit `.env` with your credentials:
 
 ```dotenv
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+# Azure OpenAI (mandatory)
+DEFAULT_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_OPENAI_API_KEY=your-api-key-here
-AZURE_OPENAI_API_VERSION=2024-12-01-preview
+DEFAULT_OPENAI_API_VERSION=2024-12-01-preview
+
+# JIRA (mandatory)
 JIRA_BASE_URL=https://your-jira-instance.atlassian.net
 JIRA_API_TOKEN=your-jira-api-token
 ```

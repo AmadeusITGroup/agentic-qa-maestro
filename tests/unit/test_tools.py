@@ -53,6 +53,6 @@ def test_collect_pytest_tests_nonexistent():
 def test_jira_tools_exist():
     from qa_maestro_maf.tools.jira_tools import JIRA_TOOLS
 
-    assert len(JIRA_TOOLS) == 4
+    assert len(JIRA_TOOLS) == 7
     tool_names = [getattr(t, "__name__", getattr(t, "name", "")) for t in JIRA_TOOLS]
     assert "jira_get_issue" in tool_names or any("jira_get_issue" in str(t) for t in JIRA_TOOLS)
