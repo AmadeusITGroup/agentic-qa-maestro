@@ -99,7 +99,7 @@ python scripts/run_e2e_pipeline.py \
 ## Start the Web UI
 
 ```bash
-uvicorn qa_maestro_maf.web_ui.app:app --port 8000
+uvicorn agentic_qa_maestro.web_ui.app:app --port 8000
 ```
 
 Open http://localhost:8000 in your browser.

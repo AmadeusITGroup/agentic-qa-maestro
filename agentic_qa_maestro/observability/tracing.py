@@ -1,5 +1,5 @@
 """
-OpenTelemetry tracing setup for QA Maestro MAF.
+OpenTelemetry tracing setup for Agentic QA Maestro.
 """
 
 import logging
@@ -22,7 +22,7 @@ def setup_tracing(config: Dict[str, Any]) -> Optional[TracerProvider]:
         logger.info("Tracing is disabled")
         return None
 
-    service_name = config.get("service_name", "qa-maestro-maf")
+    service_name = config.get("service_name", "agentic-qa-maestro")
     exporter_type = config.get("exporter", "console")
 
     resource = Resource.create({
@@ -57,7 +57,7 @@ def setup_tracing(config: Dict[str, Any]) -> Optional[TracerProvider]:
     return provider
 
 
-def get_tracer(name: str = "qa_maestro_maf") -> trace.Tracer:
+def get_tracer(name: str = "agentic_qa_maestro") -> trace.Tracer:
     return trace.get_tracer(name)
 
 

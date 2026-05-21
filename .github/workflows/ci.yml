@@ -29,4 +29,4 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
-      - run: pytest --cov=qa_maestro_maf --cov-report=term-missing
+      - run: pytest --cov=agentic_qa_maestro --cov-report=term-missing

@@ -1,142 +1,71 @@
 # Agentic QA Maestro
 
+[![CI](https://github.com/AmadeusITGroup/agentic-qa-maestro/actions/workflows/ci.yml/badge.svg)](https://github.com/AmadeusITGroup/agentic-qa-maestro/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/agentic-qa-maestro)](https://pypi.org/project/agentic-qa-maestro/)
+[![Python](https://img.shields.io/pypi/pyversions/agentic-qa-maestro)](https://pypi.org/project/agentic-qa-maestro/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
-[![Status](https://img.shields.io/badge/status-alpha-yellow.svg)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Security Policy](https://img.shields.io/badge/security-policy-orange.svg)](SECURITY.md)
 
-Fully automated testing from JIRA stories to defect management, powered by [Microsoft Agent Framework (MAF)](https://github.com/microsoft/agent-framework).
+**AI-powered QA automation that turns User stories into executed tests — no scripting required.**
 
-## Overview
+Give it a ticket, and it will:
 
-QA Maestro MAF is an intelligent QA automation system that uses multiple AI agents
-orchestrated through MAF to perform end-to-end testing workflows. It can:
+1. Read the acceptance criteria
+2. Generate test cases
+3. Run them in a real browser (Playwright)
+4. Report pass/fail results back to your ticketing system
 
-- **Fetch JIRA stories** and extract acceptance criteria
-- **Generate test cases** from requirements
-- **Run browser tests** via Playwright
-- **Test REST APIs** for contract compliance
-- **Report results** back to JIRA
+---
 
-## Architecture
+## How It Works
 
-```
-┌─────────────────────────────────────────────────┐
-│              application.yaml                    │
-│  (models, agents, teams, observability)          │
-└─────────────┬───────────────────────────────────┘
-              │
-    ┌─────────▼─────────┐
-    │    QAMaestro       │
-    │  (main.py)         │
-    └────┬──────────┬────┘
-         │          │
-  ┌──────▼──┐  ┌───▼──────────┐
-  │GroupChat │  │ Sequential   │
-  │Builder   │  │ Builder      │
-  └──────┬───┘  └───┬──────────┘
-         │          │
-    ┌────▼──────────▼────┐
-    │   MAF Agents        │
-    │  ┌──────────────┐   │
-    │  │ Orchestrator  │   │
-    │  │ JIRA Agent    │   │
-    │  │ Browser Agent │   │
-    │  │ API Agent     │   │
-    │  │ Research Agent│   │
-    │  │ Test Runner   │   │
-    │  └──────────────┘   │
-    └─────────────────────┘
+```mermaid
+graph LR
+    Story["🎫 User Story"] --> Maestro["🤖 QA Maestro"]
+    Maestro --> Tests["✅ Generated Tests"]
+    Tests --> Browser["🌐 Browser Execution"]
+    Browser --> Report["📋 Results in Ticketing System"]
 ```
 
-### Key Differences from AutoGen Version
+Under the hood, QA Maestro uses multiple AI agents (powered by [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)) that collaborate to complete the testing workflow:
 
-| Feature | AutoGen | MAF |
-|---------|---------|-----|
-| Agent class | `AssistantAgent` | `Agent` |
-| Model client | `AzureOpenAIChatCompletionClient` | `OpenAIChatCompletionClient` |
-| Group chat | `SelectorGroupChat` | `GroupChatBuilder` |
-| Sequential pipeline | `GraphFlow` / `DiGraphBuilder` | `SequentialBuilder` |
-| Tool decorator | plain async functions | `@tool(approval_mode=...)` |
-| Orchestration | LLM-based selector prompt | Agent-based orchestrator |
-| Package | `autogen-agentchat` | `agent-framework` |
+| Agent | Role |
+|-------|------|
+| **Orchestrator** | Coordinates the overall test pipeline |
+| **JIRA Agent** | Reads stories, posts results, files bugs |
+| **Browser Agent** | Navigates and interacts with the web app |
+| **Test Runner** | Executes pytest suites and collects results |
+| **API Agent** | Validates REST endpoints against contracts |
+| **Research Agent** | Looks up documentation when needed |
 
-## Quick Start
+---
 
-See [GETTINGSTARTED.md](GETTINGSTARTED.md) for full installation, configuration, and usage instructions.
+## Get Started
 
 ```bash
-pip install -e ".[dev]"
-cp example.env .env
-pytest
+pip install agentic-qa-maestro    # or: uv tool install agentic-qa-maestro
+cp example.env .env               # add your Azure OpenAI + JIRA credentials
+qa-maestro --ticket PROJ-123      # run against a ticket
 ```
 
-## Project Structure
+See the [Getting Started guide](GETTINGSTARTED.md) for full installation, configuration, and usage instructions.
 
-```
-qa-maestro-maf/
-├── application.yaml          # Main config
-├── pyproject.toml             # Dependencies
-├── qa_maestro_maf/
-│   ├── main.py                # Entry point & QAMaestro class
-│   ├── config.py              # YAML config loader with env substitution
-│   ├── agents/factory.py      # Agent creation from config
-│   ├── models/azure_openai.py # Azure OpenAI client factory
-│   ├── teams/
-│   │   ├── group_chat_team.py # GroupChatBuilder orchestration
-│   │   └── sequential_team.py # SequentialBuilder pipelines
-│   ├── tools/
-│   │   ├── jira_tools.py      # Native JIRA API tools
-│   │   └── local_tools.py     # Pytest runner, time, etc.
-│   ├── observability/         # OpenTelemetry tracing
-│   └── web_ui/                # FastAPI dashboard
-├── scripts/
-│   └── run_jira_pipeline.py   # JIRA pipeline runner
-└── tests/unit/                # Unit tests
-```
+---
 
-## More Usage Examples
+## Documentation
 
-### Run a group chat QA session
-```bash
-python -m qa_maestro_maf.main --team group_chat --query "Test login page for accessibility"
-```
+| Guide | Description |
+|-------|-------------|
+| [Getting Started](GETTINGSTARTED.md) | Full setup, configuration & first run |
+| [Architecture](ARCHITECTURE.md) | System design & component details |
+| [Contributing](CONTRIBUTING.md) | How to contribute |
+| [Changelog](CHANGELOG.md) | Release history |
 
-### Run a sequential pipeline
-```bash
-python -m qa_maestro_maf.main --team sequential --ticket SACP-282967
-```
-
-### Run with OpenTelemetry tracing enabled
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-python scripts/run_jira_pipeline.py --ticket SACP-282967
-```
-
-## CI/CD Automation
-
-You can integrate QA Maestro MAF into your CI pipeline:
-
-```yaml
-# Example GitHub Actions step
-- name: Run QA Maestro MAF tests
-  run: |
-    pip install -e ".[dev]"
-    pytest --cov=qa_maestro_maf --cov-report=xml
-```
+---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for our security policy and how to report vulnerabilities.
-
-## Code of Conduct
-
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 

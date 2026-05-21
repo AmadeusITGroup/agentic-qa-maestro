@@ -1,7 +1,7 @@
 """
-Agent factory for QA Maestro MAF.
+Agent factory for Agentic QA Maestro.
 
-Creates MAF Agent instances from YAML configuration,
+Creates Agent Framework Agent instances from YAML configuration,
 assigning system prompts, tools, and model clients.
 """
 
@@ -10,9 +10,9 @@ from typing import Any, Dict, List, Optional
 from agent_framework import Agent
 from agent_framework.openai import OpenAIChatCompletionClient
 
-from qa_maestro_maf.tools.local_tools import collect_pytest_tests, get_current_time, run_pytest
-from qa_maestro_maf.tools.jira_tools import JIRA_TOOLS
-from qa_maestro_maf.tools.browser_tools import BROWSER_TOOLS
+from agentic_qa_maestro.tools.local_tools import collect_pytest_tests, get_current_time, run_pytest
+from agentic_qa_maestro.tools.jira_tools import JIRA_TOOLS
+from agentic_qa_maestro.tools.browser_tools import BROWSER_TOOLS
 
 
 DEFAULT_PROMPTS = {
@@ -130,7 +130,7 @@ def create_agent(
     model_client: OpenAIChatCompletionClient,
     tools: Optional[List[Any]] = None,
 ) -> Agent:
-    """Create a single MAF Agent from configuration."""
+    """Create a single Agent Framework Agent from configuration."""
     system_prompt = agent_config.get("prompt", DEFAULT_PROMPTS.get(agent_name, ""))
     description = agent_config.get("description", f"Agent '{agent_name}' for QA automation tasks")
 

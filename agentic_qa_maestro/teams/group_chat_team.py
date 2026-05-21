@@ -1,7 +1,7 @@
 """
 GroupChat team for interactive QA orchestration.
 
-Uses MAF GroupChatBuilder with an agent-based orchestrator
+Uses Agent Framework GroupChatBuilder with an agent-based orchestrator
 to dynamically select the next agent based on conversation context.
 """
 

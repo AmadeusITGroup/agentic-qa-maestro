@@ -1,5 +1,5 @@
 """
-Configuration loader for QA Maestro MAF.
+Configuration loader for Agentic QA Maestro.
 
 Loads application.yaml with environment variable substitution (${env:VAR})
 and self-referencing templates (${this:path.to.value}).
@@ -20,7 +20,7 @@ class ConfigError(Exception):
 
 
 class AppConfig:
-    """Configuration manager for QA Maestro MAF application."""
+    """Configuration manager for Agentic QA Maestro application."""
 
     _ENV_PATTERN = re.compile(r"\$\{env:([^}]+)\}")
     _THIS_PATTERN = re.compile(r"\$\{this:([^}]+)\}")

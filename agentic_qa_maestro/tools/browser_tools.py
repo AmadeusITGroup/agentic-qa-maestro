@@ -1,5 +1,5 @@
 """
-Playwright browser automation tools for QA Maestro MAF agents.
+Playwright browser automation tools for Agentic QA Maestro agents.
 
 Provides tools for browser-based UI testing: navigation, clicking,
 filling forms, screenshots, page content extraction, and AAD authentication.

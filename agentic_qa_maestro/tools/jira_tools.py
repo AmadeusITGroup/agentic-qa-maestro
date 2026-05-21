@@ -1,8 +1,8 @@
 """
-Native JIRA API tools for QA Maestro MAF agents.
+Native JIRA API tools for Agentic QA Maestro agents.
 
 Uses httpx sync client for JIRA REST API operations.
-Decorated with @tool for MAF agent integration.
+Decorated with @tool for Agent Framework integration.
 """
 
 import json

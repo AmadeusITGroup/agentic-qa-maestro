@@ -1,5 +1,5 @@
 """
-Azure OpenAI model client factory for MAF agents.
+Azure OpenAI model client factory for Agent Frameworks.
 
 Creates OpenAIChatCompletionClient instances from YAML configuration,
 with SSL support for corporate proxies.

@@ -1,4 +1,4 @@
-# Contributing to QA Maestro MAF
+# Contributing to Agentic QA Maestro
 
 Thank you for your interest in contributing! Please follow these guidelines to help us maintain a collaborative and high-quality project.
 

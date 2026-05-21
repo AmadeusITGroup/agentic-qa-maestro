@@ -1,7 +1,7 @@
 """
 Sequential team for deterministic QA test pipelines.
 
-Uses MAF SequentialBuilder to chain agents in a defined order.
+Uses Agent Framework SequentialBuilder to chain agents in a defined order.
 """
 
 from typing import Any, Dict, List, Optional

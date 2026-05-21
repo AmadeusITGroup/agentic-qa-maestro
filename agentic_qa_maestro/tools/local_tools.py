@@ -1,5 +1,5 @@
 """
-Built-in local tools for QA Maestro MAF agents.
+Built-in local tools for Agentic QA Maestro agents.
 """
 
 import datetime

@@ -1,5 +1,5 @@
 """
-Full E2E Pipeline Runner for QA Maestro MAF.
+Full E2E Pipeline Runner for Agentic QA Maestro.
 
 Runs the complete 6-phase test pipeline:
   Phase 1 — Requirement Analysis (JIRA fetch + AC extraction)
@@ -129,7 +129,7 @@ async def run_e2e_pipeline(
     mode = "FULL E2E" if target_url else "ANALYSIS ONLY"
 
     logger.info("=" * 70)
-    logger.info("QA Maestro MAF — E2E Test Pipeline")
+    logger.info("Agentic QA Maestro — E2E Test Pipeline")
     logger.info("=" * 70)
     logger.info(f"Mode:       {mode}")
     logger.info(f"Ticket:     {jira_ticket}")
@@ -148,7 +148,7 @@ async def run_e2e_pipeline(
         logger.warning("No .env file found, using current environment")
         env_file = None
 
-    from qa_maestro_maf.config import AppConfig, ConfigError
+    from agentic_qa_maestro.config import AppConfig, ConfigError
 
     try:
         config = AppConfig(config_path=config_path, env_file=env_file)
@@ -157,8 +157,8 @@ async def run_e2e_pipeline(
         return False
 
     from agent_framework import AgentResponseUpdate, Message
-    from qa_maestro_maf.main import QAMaestro
-    from qa_maestro_maf.teams.group_chat_team import create_group_chat_team
+    from agentic_qa_maestro.main import QAMaestro
+    from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
 
     maestro = QAMaestro(config_path=config_path)
 
@@ -221,7 +221,7 @@ async def run_e2e_pipeline(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run Full E2E Test Pipeline via QA Maestro MAF"
+        description="Run Full E2E Test Pipeline via Agentic QA Maestro"
     )
     parser.add_argument("--ticket", "-t", required=True, help="JIRA ticket key (e.g. SACP-282967)")
     parser.add_argument("--url", "-u", required=True, help="Target application URL for browser testing (mandatory)")

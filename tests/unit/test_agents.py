@@ -1,20 +1,20 @@
-"""Unit tests for MAF agent factory."""
+"""Unit tests for Agent Framework factory."""
 
 from unittest.mock import MagicMock, patch
 import pytest
 
 try:
     from agent_framework import Agent
-    MAF_AVAILABLE = True
+    AF_AVAILABLE = True
 except (ImportError, ModuleNotFoundError):
-    MAF_AVAILABLE = False
+    AF_AVAILABLE = False
 
-maf_required = pytest.mark.skipif(not MAF_AVAILABLE, reason="agent-framework not installed")
+af_required = pytest.mark.skipif(not AF_AVAILABLE, reason="agent-framework not installed")
 
 
-@maf_required
+@af_required
 def test_default_prompts_exist():
-    from qa_maestro_maf.agents.factory import DEFAULT_PROMPTS
+    from agentic_qa_maestro.agents.factory import DEFAULT_PROMPTS
 
     expected = [
         "orchestrator",
@@ -29,9 +29,9 @@ def test_default_prompts_exist():
         assert len(DEFAULT_PROMPTS[agent_name]) > 50
 
 
-@maf_required
+@af_required
 def test_create_agent_with_mock_model():
-    from qa_maestro_maf.agents.factory import create_agent
+    from agentic_qa_maestro.agents.factory import create_agent
 
     mock_model = MagicMock()
     agent_config = {"description": "Test agent"}
@@ -46,9 +46,9 @@ def test_create_agent_with_mock_model():
     assert agent.description == "Test agent"
 
 
-@maf_required
+@af_required
 def test_create_agents_from_config():
-    from qa_maestro_maf.agents.factory import create_agents_from_config
+    from agentic_qa_maestro.agents.factory import create_agents_from_config
 
     mock_model = MagicMock()
     agents_config = {
@@ -66,9 +66,9 @@ def test_create_agents_from_config():
     assert len(agents) == 2
 
 
-@maf_required
+@af_required
 def test_create_agents_invalid_model():
-    from qa_maestro_maf.agents.factory import create_agents_from_config
+    from agentic_qa_maestro.agents.factory import create_agents_from_config
 
     mock_model = MagicMock()
     agents_config = {

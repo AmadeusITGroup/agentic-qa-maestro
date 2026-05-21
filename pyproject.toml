@@ -56,10 +56,10 @@ Repository = "https://github.com/AmadeusITGroup/agentic-qa-maestro"
 Issues = "https://github.com/AmadeusITGroup/agentic-qa-maestro/issues"
 
 [project.scripts]
-qa-maestro = "qa_maestro_maf.main:main"
+qa-maestro = "agentic_qa_maestro.main:main"
 
 [tool.setuptools.packages.find]
-include = ["qa_maestro_maf*"]
+include = ["agentic_qa_maestro*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -68,3 +68,6 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.uv]
+prerelease = "allow"

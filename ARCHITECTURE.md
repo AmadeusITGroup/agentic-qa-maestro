@@ -1,90 +1,70 @@
-# Architecture — QA Maestro MAF
+# Architecture — Agentic QA Maestro
 
-> Multi-agent QA automation powered by [Microsoft Agent Framework (MAF)](https://github.com/microsoft/agent-framework).
+> Multi-agent QA automation powered by [Microsoft Agent Framework](https://github.com/microsoft/agent-framework).
 
 ---
 
 ## High-Level Overview
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                         User Interface                               │
-│         ┌──────────────┐              ┌──────────────────┐           │
-│         │   CLI (main)  │              │  Web UI (FastAPI) │           │
-│         └──────┬───────┘              └────────┬─────────┘           │
-└────────────────┼───────────────────────────────┼─────────────────────┘
-                 │                               │
-                 ▼                               ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                        QAMaestro (main.py)                           │
-│   Entry point. Loads config, creates model clients & agents,         │
-│   dispatches to the chosen execution mode.                           │
-│                                                                      │
-│   Modes:  chat  │  run (single task)  │  pipeline (sequential)       │
-└──────────────────────────────┬───────────────────────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                                 ▼
-┌──────────────────────┐          ┌──────────────────────────┐
-│  GroupChat Team       │          │  Sequential Team          │
-│  (group_chat_team.py) │          │  (sequential_team.py)     │
-│                       │          │                           │
-│  Dynamic orchestrator │          │  Deterministic pipeline   │
-│  selects the next     │          │  runs agents in a fixed   │
-│  agent at each turn.  │          │  order from config.       │
-└──────────┬────────────┘          └─────────────┬─────────────┘
-           │                                     │
-           └──────────────┬──────────────────────┘
-                          ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                          Agent Layer                                  │
-│   Created by agents/factory.py from application.yaml                 │
-│                                                                      │
-│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                │
-│   │ Orchestrator  │ │ JIRA Agent   │ │ Browser Agent│                │
-│   └──────────────┘ └──────────────┘ └──────────────┘                │
-│   ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                │
-│   │  API Agent    │ │Research Agent│ │ Test Runner   │                │
-│   └──────────────┘ └──────────────┘ └──────────────┘                │
-└──────────────────────────────┬───────────────────────────────────────┘
-                               │
-                               ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│                           Tool Layer                                  │
-│                                                                      │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │
-│  │ Browser Tools │  │  JIRA Tools  │  │ Local Tools  │               │
-│  │ (Playwright)  │  │ (REST/httpx) │  │ (pytest, …)  │               │
-│  └──────────────┘  └──────────────┘  └──────────────┘               │
-│                                                                      │
-│  ┌──────────────────────────────────┐                                │
-│  │  MCP Servers (external tools)    │                                │
-│  └──────────────────────────────────┘                                │
-└──────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph UI["User Interface"]
+        CLI["CLI (main)"]
+        WebUI["Web UI (FastAPI)"]
+    end
+
+    subgraph Core["QAMaestro (main.py)"]
+        Entry["Entry point — loads config, creates model clients & agents,<br/>dispatches to chosen execution mode<br/><br/>Modes: chat | run | pipeline"]
+    end
+
+    subgraph Teams["Team Orchestration"]
+        GC["GroupChat Team<br/>(group_chat_team.py)<br/>Dynamic orchestrator selects<br/>the next agent at each turn"]
+        SEQ["Sequential Team<br/>(sequential_team.py)<br/>Deterministic pipeline runs<br/>agents in fixed order"]
+    end
+
+    subgraph Agents["Agent Layer"]
+        direction LR
+        Orch["Orchestrator"]
+        JIRA["JIRA Agent"]
+        Browser["Browser Agent"]
+        API["API Agent"]
+        Research["Research Agent"]
+        TestRunner["Test Runner"]
+    end
+
+    subgraph Tools["Tool Layer"]
+        direction LR
+        BT["Browser Tools<br/>(Playwright)"]
+        JT["JIRA Tools<br/>(REST/httpx)"]
+        LT["Local Tools<br/>(pytest, …)"]
+        MCP["MCP Servers<br/>(external tools)"]
+    end
+
+    CLI --> Entry
+    WebUI --> Entry
+    Entry --> GC
+    Entry --> SEQ
+    GC --> Orch
+    SEQ --> Orch
+    Orch --> BT
+    Orch --> JT
+    Orch --> LT
+    Orch --> MCP
 ```
 
 ---
 
 ## Execution Modes
 
-```
-                     ┌──────────────────┐
-                     │   User Request    │
-                     └────────┬─────────┘
-                              │
-               ┌──────────────┼──────────────┐
-               ▼              ▼              ▼
-        ┌────────────┐ ┌───────────┐ ┌──────────────┐
-        │    Chat     │ │    Run    │ │   Pipeline   │
-        │ (interactive│ │ (one-shot │ │ (sequential  │
-        │  loop)      │ │  task)    │ │  steps)      │
-        └──────┬─────┘ └─────┬─────┘ └──────┬───────┘
-               │              │              │
-               ▼              ▼              ▼
-        ┌─────────────────────────┐  ┌─────────────────┐
-        │  GroupChat Orchestrator  │  │ Sequential Team  │
-        │  (dynamic agent select)  │  │ (fixed order)    │
-        └─────────────────────────┘  └─────────────────┘
+```mermaid
+graph TD
+    UR["User Request"] --> Chat["Chat<br/>(interactive loop)"]
+    UR --> Run["Run<br/>(one-shot task)"]
+    UR --> Pipeline["Pipeline<br/>(sequential steps)"]
+
+    Chat --> GC["GroupChat Orchestrator<br/>(dynamic agent select)"]
+    Run --> GC
+    Pipeline --> ST["Sequential Team<br/>(fixed order)"]
 ```
 
 | Mode | Orchestration | Use Case |
@@ -97,94 +77,49 @@
 
 ## Data Flow
 
-```
-┌─────────────┐     ┌─────────────────────────────────────────┐
-│ application  │────▶│ AppConfig (config.py)                   │
-│ .yaml        │     │  • env var substitution (${env:VAR})    │
-│              │     │  • self-referencing templates            │
-└─────────────┘     └──────────┬──────────────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-   ┌─────────────────┐ ┌─────────────┐ ┌──────────────┐
-   │ Model Clients    │ │ Agent Defs  │ │ Team Config  │
-   │ (azure_openai.py)│ │ (factory.py)│ │ (teams/*.py) │
-   └────────┬────────┘ └──────┬──────┘ └──────┬───────┘
-            │                 │               │
-            └────────────┬────┘               │
-                         ▼                    │
-                ┌─────────────────┐           │
-                │  MAF Agent      │◀──────────┘
-                │  instances      │
-                └────────┬────────┘
-                         │
-                         ▼
-             ┌───────────────────────┐
-             │  @tool functions      │
-             │  (browser, jira,      │
-             │   local, mcp)         │
-             └───────────┬───────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-   ┌────────────┐ ┌───────────┐ ┌────────────┐
-   │ Playwright  │ │ JIRA API  │ │   pytest   │
-   │ (browser)   │ │ (httpx)   │ │ (subprocess│
-   └────────────┘ └───────────┘ └────────────┘
+```mermaid
+graph TD
+    YAML["application.yaml"] --> Config["AppConfig (config.py)<br/>• env var substitution<br/>• self-referencing templates"]
+
+    Config --> Models["Model Clients<br/>(azure_openai.py)"]
+    Config --> AgentDefs["Agent Defs<br/>(factory.py)"]
+    Config --> TeamCfg["Team Config<br/>(teams/*.py)"]
+
+    Models --> Agents["Agent Framework Agent instances"]
+    AgentDefs --> Agents
+    TeamCfg --> Agents
+
+    Agents --> ToolFns["@tool functions<br/>(browser, jira, local, mcp)"]
+
+    ToolFns --> PW["Playwright<br/>(browser)"]
+    ToolFns --> JIRAAPI["JIRA API<br/>(httpx)"]
+    ToolFns --> Pytest["pytest<br/>(subprocess)"]
 ```
 
 ---
 
 ## Agent Roles
 
-```
-                    ┌─────────────────────┐
-                    │    Orchestrator      │
-                    │ Coordinates the full │
-                    │ E2E pipeline phases  │
-                    └─────────┬───────────┘
-                              │ delegates to
-        ┌───────────┬────────┼────────┬───────────┐
-        ▼           ▼        ▼        ▼           ▼
-  ┌───────────┐ ┌────────┐ ┌──────┐ ┌────────┐ ┌──────────┐
-  │JIRA Agent │ │Browser │ │ API  │ │Research│ │Test      │
-  │           │ │Agent   │ │Agent │ │Agent   │ │Runner    │
-  │• Fetch    │ │• Start │ │• REST│ │• Web   │ │• pytest  │
-  │  issues   │ │  browser│ │ calls│ │ search │ │  execute │
-  │• Extract  │ │• Nav,  │ │• Con-│ │• Doc   │ │• Collect │
-  │  criteria │ │  click,│ │ tract│ │ lookup │ │  results │
-  │• Create   │ │  fill  │ │ test │ │        │ │• Analyze │
-  │  bugs     │ │• Screen│ │      │ │        │ │  output  │
-  │• Comment  │ │  shots │ │      │ │        │ │          │
-  │• Transition│ │• AAD  │ │      │ │        │ │          │
-  └───────────┘ │  auth  │ └──────┘ └────────┘ └──────────┘
-                └────────┘
+```mermaid
+graph TD
+    Orch["Orchestrator<br/>Coordinates the full<br/>E2E pipeline phases"] --> JIRA["JIRA Agent<br/>• Fetch issues<br/>• Extract criteria<br/>• Create bugs<br/>• Comment<br/>• Transition"]
+    Orch --> Browser["Browser Agent<br/>• Start browser<br/>• Nav, click, fill<br/>• Screenshots<br/>• AAD auth"]
+    Orch --> API["API Agent<br/>• REST calls<br/>• Contract test"]
+    Orch --> Research["Research Agent<br/>• Web search<br/>• Doc lookup"]
+    Orch --> TestRunner["Test Runner<br/>• pytest execute<br/>• Collect results<br/>• Analyze output"]
 ```
 
 ---
 
 ## E2E Pipeline Phases
 
-```
-Phase 1             Phase 2             Phase 3
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Requirement   │───▶│ App Discovery │───▶│ Test Case     │
-│ Analysis      │    │ (Playwright   │    │ Generation    │
-│               │    │  recon)       │    │               │
-│ JIRA Agent    │    │ Browser Agent │    │ Orchestrator  │
-│ fetches story │    │ explores UI   │    │ creates tests │
-│ + criteria    │    │               │    │ from criteria │
-└──────────────┘    └──────────────┘    └──────────────┘
-        │                                       │
-        ▼                                       ▼
-Phase 6             Phase 5             Phase 4
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Cleanup       │◀───│ Bug Reporting  │◀───│ Test Execution│
-│               │    │               │    │               │
-│ Browser Agent │    │ JIRA Agent    │    │ Browser Agent │
-│ closes browser│    │ files bugs,   │    │ + Test Runner │
-│               │    │ posts summary │    │ run tests     │
-└──────────────┘    └──────────────┘    └──────────────┘
+```mermaid
+graph LR
+    P1["Phase 1<br/>Requirement Analysis<br/><br/>JIRA Agent<br/>fetches story + criteria"] --> P2["Phase 2<br/>App Discovery<br/><br/>Browser Agent<br/>explores UI via Playwright"]
+    P2 --> P3["Phase 3<br/>Test Case Generation<br/><br/>Orchestrator<br/>creates tests from criteria"]
+    P3 --> P4["Phase 4<br/>Test Execution<br/><br/>Browser Agent + Test Runner<br/>run tests"]
+    P4 --> P5["Phase 5<br/>Bug Reporting<br/><br/>JIRA Agent<br/>files bugs, posts summary"]
+    P5 --> P6["Phase 6<br/>Cleanup<br/><br/>Browser Agent<br/>closes browser"]
 ```
 
 ---
@@ -208,7 +143,7 @@ Exposes typed sections: `.models`, `.agents`, `.teams`, `.mcp_servers`, `.observ
 
 ### Agent Factory (`agents/factory.py`)
 
-- Maps YAML agent definitions → MAF `Agent` objects
+- Maps YAML agent definitions → Agent Framework `Agent` objects
 - Assigns tools and model clients per agent
 - Provides default system prompts for each role
 
@@ -222,17 +157,11 @@ Exposes typed sections: `.models`, `.agents`, `.teams`, `.mcp_servers`, `.observ
 
 ### Observability (`observability/tracing.py`)
 
-```
-                  ┌──────────────────┐
-                  │  setup_tracing() │
-                  └────────┬─────────┘
-                           │
-            ┌──────────────┼──────────────┐
-            ▼              ▼              ▼
-     ┌────────────┐ ┌───────────┐ ┌──────────────┐
-     │  Console    │ │   OTLP    │ │ Azure Monitor│
-     │  Exporter   │ │  (gRPC)   │ │  Exporter    │
-     └────────────┘ └───────────┘ └──────────────┘
+```mermaid
+graph TD
+    ST["setup_tracing()"] --> Console["Console Exporter"]
+    ST --> OTLP["OTLP (gRPC)"]
+    ST --> AzMon["Azure Monitor Exporter"]
 ```
 
 - OpenTelemetry tracing with configurable exporters
@@ -240,18 +169,13 @@ Exposes typed sections: `.models`, `.agents`, `.teams`, `.mcp_servers`, `.observ
 
 ### Web UI (`web_ui/app.py`)
 
-```
-     Browser
-        │
-        ▼
-  ┌────────────────────────────────────────┐
-  │  FastAPI + Jinja2                       │
-  │                                        │
-  │  GET  /           → Dashboard (HTML)    │
-  │  POST /api/chat   → Run group chat      │
-  │  GET  /api/status → Agent status        │
-  │  GET  /api/history→ Run history         │
-  └────────────────────────────────────────┘
+```mermaid
+graph LR
+    Browser["Browser"] --> FastAPI["FastAPI + Jinja2"]
+    FastAPI --> GET_root["GET / → Dashboard (HTML)"]
+    FastAPI --> POST_chat["POST /api/chat → Run group chat"]
+    FastAPI --> GET_status["GET /api/status → Agent status"]
+    FastAPI --> GET_history["GET /api/history → Run history"]
 ```
 
 ---
@@ -263,7 +187,7 @@ Exposes typed sections: `.models`, `.agents`, `.teams`, `.mcp_servers`, `.observ
 | **Factory** | `create_model_clients_from_config()`, `create_agents_from_config()`, `create_*_team()` | Decouple creation from config |
 | **Singleton** | Browser state in `browser_tools.py` (module-level globals + single-thread executor) | One browser instance, thread-safe |
 | **Strategy** | AAD auth methods (`header`, `token_url`, `easyauth`, `msal_cache`); orchestration modes | Swap behavior at runtime |
-| **Decorator** | `@tool(approval_mode=...)` on all tool functions | Register functions as MAF tools |
+| **Decorator** | `@tool(approval_mode=...)` on all tool functions | Register functions as Agent Framework tools |
 | **Template Method** | `AppConfig._apply_substitutions()` | Recursive config resolution |
 
 ---
@@ -271,13 +195,13 @@ Exposes typed sections: `.models`, `.agents`, `.teams`, `.mcp_servers`, `.observ
 ## Directory Structure
 
 ```
-qa-maestro-maf/
+agentic-qa-maestro/
 ├── ARCHITECTURE.md            ← You are here
 ├── application.yaml           # All config: models, agents, teams, observability
 ├── pyproject.toml             # Package metadata & dependencies
 ├── example.env                # Template for environment variables
 │
-├── qa_maestro_maf/
+├── agentic_qa_maestro/
 │   ├── main.py                # QAMaestro class & CLI entry point
 │   ├── config.py              # YAML loader with env/self-ref substitution
 │   │
@@ -318,7 +242,7 @@ qa-maestro-maf/
 
 | Layer | Technology |
 |-------|-----------|
-| Agent Framework | Microsoft Agent Framework (MAF) |
+| Agent Framework | Microsoft Agent Framework |
 | LLM Provider | Azure OpenAI (GPT-4.1) |
 | Browser Automation | Playwright (Chromium) |
 | Issue Tracking | JIRA (REST API via httpx) |

@@ -1,4 +1,4 @@
-"""Unit tests for QA Maestro MAF configuration loader."""
+"""Unit tests for Agentic QA Maestro configuration loader."""
 
 import os
 import tempfile
@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from qa_maestro_maf.config import AppConfig, ConfigError
+from agentic_qa_maestro.config import AppConfig, ConfigError
 
 
 @pytest.fixture

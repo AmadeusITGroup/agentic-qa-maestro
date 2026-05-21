@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of QA Maestro MAF
-- Multi-agent orchestration via Microsoft Agent Framework (MAF)
+- Initial release of Agentic QA Maestro
+- Multi-agent orchestration via Microsoft Agent Framework
 - JIRA integration: fetch stories, extract acceptance criteria, report defects
 - Browser testing via Playwright MCP server
 - REST API contract testing

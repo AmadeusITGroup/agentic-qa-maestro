@@ -1,5 +1,5 @@
 """
-FastAPI Web UI for QA Maestro MAF.
+FastAPI Web UI for Agentic QA Maestro.
 """
 
 import asyncio
@@ -17,12 +17,12 @@ from fastapi.templating import Jinja2Templates
 
 from agent_framework import AgentResponseUpdate, Message
 
-from qa_maestro_maf.config import AppConfig
-from qa_maestro_maf.main import QAMaestro
+from agentic_qa_maestro.config import AppConfig
+from agentic_qa_maestro.main import QAMaestro
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="QA Maestro MAF", version="0.1.0")
+app = FastAPI(title="Agentic QA Maestro", version="0.1.0")
 
 templates_dir = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(templates_dir))
@@ -37,7 +37,7 @@ async def startup():
     try:
         _maestro = QAMaestro()
         await _maestro.initialize()
-        logger.info("QA Maestro MAF initialized successfully")
+        logger.info("Agentic QA Maestro initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize QA Maestro: {e}")
         _maestro = None
@@ -53,7 +53,7 @@ async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"title": "QA Maestro MAF", "run_history": _run_history[-20:]},
+        context={"title": "Agentic QA Maestro", "run_history": _run_history[-20:]},
     )
 
 
@@ -68,7 +68,7 @@ async def chat(request: Request):
         return {"error": "QA Maestro is not initialized"}
 
     try:
-        from qa_maestro_maf.teams.group_chat_team import create_group_chat_team
+        from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
 
         team_config = _maestro.config.teams.get("interactive", {})
         workflow = create_group_chat_team(agents=_maestro.agents, team_config=team_config)
@@ -236,7 +236,7 @@ async def _pipeline_stream(ticket: str, url: str, username: str, password: str) 
     os.environ["CREDENTIAL_USERNAME"] = username
     os.environ["CREDENTIAL_PASSWORD"] = password
 
-    from qa_maestro_maf.teams.group_chat_team import create_group_chat_team
+    from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
 
     # Build the E2E prompt
     prompt = (

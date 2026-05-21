@@ -1,5 +1,5 @@
 """
-JIRA E2E Pipeline Runner for QA Maestro MAF.
+JIRA E2E Pipeline Runner for Agentic QA Maestro.
 
 Runs the 5-phase test pipeline for a given JIRA ticket:
   1. ANALYZE  — Fetch JIRA story, extract acceptance criteria
@@ -24,7 +24,7 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from qa_maestro_maf.config import AppConfig, ConfigError
+from agentic_qa_maestro.config import AppConfig, ConfigError
 
 # SSL certificate setup for corporate proxy
 _project_root = Path(__file__).resolve().parent.parent
@@ -61,7 +61,7 @@ async def run_pipeline(
     jira_ticket: str, target_url: str = "", config_path: str = "application.yaml"
 ):
     logger.info("=" * 60)
-    logger.info("QA Maestro MAF — JIRA E2E Pipeline")
+    logger.info("Agentic QA Maestro — JIRA E2E Pipeline")
     logger.info("=" * 60)
     logger.info(f"Ticket:     {jira_ticket}")
     logger.info(f"Target URL: {target_url or '(none - analysis only)'}")
@@ -88,15 +88,15 @@ async def run_pipeline(
     try:
         from agent_framework import AgentResponseUpdate, Message
     except ImportError as e:
-        logger.error(f"MAF import failed: {e}")
+        logger.error(f"Agent Framework import failed: {e}")
         logger.info("DRY RUN MODE (agent-framework not available)")
         prompt = build_pipeline_prompt(jira_ticket, target_url)
         print(prompt)
         logger.info(f"Agents configured: {list(config.agents.keys())}")
         return True
 
-    from qa_maestro_maf.main import QAMaestro
-    from qa_maestro_maf.teams.group_chat_team import create_group_chat_team
+    from agentic_qa_maestro.main import QAMaestro
+    from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
 
     maestro = QAMaestro(config_path=config_path)
 
@@ -144,7 +144,7 @@ async def run_pipeline(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run JIRA E2E Test Pipeline via QA Maestro MAF"
+        description="Run JIRA E2E Test Pipeline via Agentic QA Maestro"
     )
     parser.add_argument("--ticket", "-t", required=True, help="JIRA ticket key")
     parser.add_argument("--url", "-u", default="", help="Target application URL")

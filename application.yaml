@@ -1,5 +1,5 @@
-# QA Maestro MAF - Application Configuration
-# Powered by Microsoft Agent Framework (MAF)
+# Agentic QA Maestro - Application Configuration
+# Powered by Microsoft Agent Framework
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Models: LLM endpoint configurations
@@ -114,7 +114,7 @@ observability:
   tracing:
     enabled: true
     exporter: console  # console | otlp | azure_monitor
-    service_name: "qa-maestro-maf"
+    service_name: "agentic-qa-maestro"
   logging:
     level: INFO
 

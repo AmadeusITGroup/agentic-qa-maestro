@@ -1,5 +1,5 @@
 """
-Main entry point for QA Maestro MAF.
+Main entry point for Agentic QA Maestro.
 
 Loads configuration, creates agents and teams,
 then runs the selected orchestration mode (interactive or pipeline).
@@ -12,15 +12,15 @@ from typing import Any, Dict, List, Optional, cast
 
 from agent_framework import AgentResponseUpdate, Message
 
-from qa_maestro_maf.config import AppConfig
-from qa_maestro_maf.models.azure_openai import create_model_clients_from_config
-from qa_maestro_maf.agents.factory import create_agents_from_config
-from qa_maestro_maf.teams.group_chat_team import create_group_chat_team
-from qa_maestro_maf.teams.sequential_team import create_sequential_team
+from agentic_qa_maestro.config import AppConfig
+from agentic_qa_maestro.models.azure_openai import create_model_clients_from_config
+from agentic_qa_maestro.agents.factory import create_agents_from_config
+from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
+from agentic_qa_maestro.teams.sequential_team import create_sequential_team
 
 
 class QAMaestro:
-    """Main application class for QA Maestro MAF."""
+    """Main application class for Agentic QA Maestro."""
 
     def __init__(self, config_path: Optional[str] = None):
         self.config = AppConfig(config_path=config_path)
@@ -96,7 +96,7 @@ class QAMaestro:
 
     async def run_chat_loop(self) -> None:
         """Run an interactive chat loop where users can send messages."""
-        print("\nQA Maestro MAF - Interactive Mode")
+        print("\nAgentic QA Maestro - Interactive Mode")
         print("=" * 50)
         print("Type your QA task or 'quit' to exit.\n")
 
@@ -163,7 +163,7 @@ def main():
     """CLI entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="QA Maestro MAF")
+    parser = argparse.ArgumentParser(description="Agentic QA Maestro")
     parser.add_argument(
         "--config", default="application.yaml", help="Path to configuration file"
     )
