@@ -1,0 +1,82 @@
+# Example App Flow — Splunk App
+# Pre-recorded navigation flows and known selectors for enriching app discovery.
+# The app_knowledge agent loads these at startup to supplement live browser discovery.
+
+app:
+  name: "Example Web Application"
+  base_url: "https://your-app.example.com"
+  description: "Sample app flow file — replace with your application's known flows"
+
+authentication:
+  type: "azure_ad"  # or "form_login", "saml", "none"
+  login_url: "/login"
+  selectors:
+    username_field: "input[name='loginfmt']"
+    password_field: "input[name='passwd']"
+    submit_button: "input[type='submit']"
+
+pages:
+  - name: "Home"
+    path: "/"
+    selectors:
+      nav_menu: "nav.main-navigation"
+      search_bar: "input[type='search']"
+      user_menu: "button.user-profile"
+    description: "Main landing page after login"
+
+  - name: "Dashboard"
+    path: "/dashboard"
+    selectors:
+      widgets: ".dashboard-widget"
+      refresh_button: "button[data-action='refresh']"
+      date_picker: ".date-range-picker"
+    description: "Analytics dashboard with configurable widgets"
+
+  - name: "Settings"
+    path: "/settings"
+    selectors:
+      save_button: "button[type='submit']"
+      cancel_button: "button.cancel"
+      tabs: ".settings-tabs li"
+    description: "Application settings page"
+
+flows:
+  - name: "Login Flow"
+    steps:
+      - action: "navigate"
+        target: "/login"
+      - action: "fill"
+        selector: "input[name='loginfmt']"
+        value: "${CREDENTIAL_USERNAME}"
+      - action: "click"
+        selector: "input[type='submit']"
+      - action: "fill"
+        selector: "input[name='passwd']"
+        value: "${CREDENTIAL_PASSWORD}"
+      - action: "click"
+        selector: "input[type='submit']"
+      - action: "wait_for"
+        selector: "nav.main-navigation"
+
+  - name: "Search Flow"
+    steps:
+      - action: "click"
+        selector: "input[type='search']"
+      - action: "fill"
+        selector: "input[type='search']"
+        value: "${SEARCH_TERM}"
+      - action: "click"
+        selector: "button[type='submit']"
+      - action: "wait_for"
+        selector: ".search-results"
+
+known_features:
+  - name: "User Authentication"
+    available: true
+    notes: "Azure AD SSO with MFA"
+  - name: "Dashboard Widgets"
+    available: true
+    notes: "Drag-and-drop configurable"
+  - name: "Export to PDF"
+    available: false
+    notes: "Planned for next release"

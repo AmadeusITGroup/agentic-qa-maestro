@@ -1,0 +1,134 @@
+# Agentic QA Maestro - Application Configuration
+# Powered by Microsoft Agent Framework
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Models: LLM endpoint configurations
+# ─────────────────────────────────────────────────────────────────────────────
+models:
+  default:
+    endpoint: ${env:DEFAULT_OPENAI_ENDPOINT}
+    deployment: "gpt-4.1"
+    api_key: ${env:AZURE_OPENAI_API_KEY}
+    api_version: ${env:DEFAULT_OPENAI_API_VERSION}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MCP Servers: Tool servers providing capabilities to agents
+# ─────────────────────────────────────────────────────────────────────────────
+mcp:
+  servers:
+    playwright:
+      run: "mcp_servers/mcp_playwright_server.py"
+      port: 9001
+      env:
+        HEADLESS: "true"
+
+    jira:
+      run: "mcp_servers/mcp_jira_server.py"
+      port: 9002
+      env:
+        JIRA_URL: ${env:JIRA_BASE_URL}
+        JIRA_TOKEN: ${env:JIRA_API_TOKEN}
+
+    rest_api:
+      run: "mcp_servers/mcp_rest_api_server.py"
+      port: 9003
+
+    web_research:
+      run: "mcp_servers/mcp_web_research_server.py"
+      port: 9004
+
+    time_server:
+      run: "mcp_servers/mcp_time_server.py"
+      port: 9005
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Agents: Specialized AI agents with specific roles and tool access
+# ─────────────────────────────────────────────────────────────────────────────
+agents:
+  orchestrator:
+    model: default
+    description: "6-phase E2E pipeline orchestrator — coordinates jira_agent and browser_agent through requirement analysis, app discovery, test generation, test execution, bug reporting, and cleanup"
+    tools: []
+
+  browser_agent:
+    model: default
+    description: "Playwright browser automation agent — launches browser, navigates pages, discovers UI elements, fills forms, clicks buttons, takes screenshots, authenticates via Azure AD, executes test cases against live apps"
+    tools:
+      - playwright
+    reflect_on_tool_use: true
+
+  api_agent:
+    model: default
+    description: "REST API testing agent for endpoint validation"
+    tools:
+      - rest_api
+    reflect_on_tool_use: true
+
+  jira_agent:
+    model: default
+    description: "JIRA integration agent — fetches issues, extracts acceptance criteria, generates test cases, posts comments, creates Bug tickets linked to parent stories, transitions issues"
+    tools:
+      - jira
+    reflect_on_tool_use: true
+
+  research_agent:
+    model: default
+    description: "Web research agent for documentation and spec lookup"
+    tools:
+      - web_research
+    reflect_on_tool_use: true
+
+  app_knowledge_agent:
+    model: default
+    description: "App knowledge agent — loads pre-recorded app flows, known selectors, and feature maps from app_flows/*.yaml to enrich live browser discovery (Phase 2.5)"
+    tools:
+      - app_knowledge
+    reflect_on_tool_use: true
+
+  test_runner_agent:
+    model: default
+    description: "Test execution agent for running pytest suites"
+    tools: []
+    reflect_on_tool_use: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Teams: Agent orchestration patterns
+# ─────────────────────────────────────────────────────────────────────────────
+teams:
+  # Interactive mode: Agent-based orchestrator dynamically picks the next agent
+  # Interactive / analysis-only mode (no browser)
+  interactive:
+    type: group_chat
+    max_messages: 40
+
+  # Full E2E mode with browser testing
+  e2e_full:
+    type: group_chat
+    max_messages: 80
+
+  # Pipeline mode: Deterministic sequential execution
+  e2e_test_pipeline:
+    type: sequential
+    steps:
+      - agent: browser_agent
+      - agent: api_agent
+      - agent: jira_agent
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Observability: Tracing and logging configuration
+# ─────────────────────────────────────────────────────────────────────────────
+observability:
+  tracing:
+    enabled: true
+    exporter: console  # console | otlp | azure_monitor
+    service_name: "agentic-qa-maestro"
+  logging:
+    level: INFO
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Web UI: Dashboard configuration
+# ─────────────────────────────────────────────────────────────────────────────
+web_ui:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8000

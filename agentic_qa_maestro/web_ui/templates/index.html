@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic QA Maestro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #09090b;
+            --bg-surface: #18181b;
+            --bg-elevated: #27272a;
+            --bg-glass: rgba(39, 39, 42, 0.6);
+            --border: rgba(63, 63, 70, 0.5);
+            --border-bright: rgba(113, 113, 122, 0.4);
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-1: #a855f7;
+            --accent-2: #6366f1;
+            --accent-3: #06b6d4;
+            --gradient-main: linear-gradient(135deg, #a855f7, #6366f1, #06b6d4);
+            --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
+            --success: #22c55e;
+            --success-muted: rgba(34, 197, 94, 0.15);
+            --danger: #ef4444;
+            --danger-muted: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-muted: rgba(245, 158, 11, 0.15);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-lg: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Space Grotesk', system-ui, sans-serif; background: var(--bg-deep); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+
+        /* Ambient background */
+        .ambient { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .ambient::before { content: ''; position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, transparent 70%); top: -200px; left: -100px; }
+        .ambient::after { content: ''; position: absolute; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(6, 182, 212, 0.06) 0%, transparent 70%); bottom: -200px; right: -100px; }
+
+        /* Layout */
+        .app { position: relative; z-index: 1; display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
+
+        /* Header */
+        .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border); backdrop-filter: blur(20px); background: rgba(9, 9, 11, 0.8); position: sticky; top: 0; z-index: 50; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--gradient-main); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; }
+        .brand h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
+        .brand span { font-size: 11px; color: var(--text-muted); font-weight: 400; display: block; margin-top: 1px; }
+        .header-nav { display: flex; gap: 4px; background: var(--bg-surface); border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+        .header-nav button { padding: 8px 16px; border-radius: 7px; border: none; background: transparent; color: var(--text-secondary); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .header-nav button.active { background: var(--bg-elevated); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .header-nav button:hover:not(.active) { color: var(--text-primary); }
+        .header-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+        .header-status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* Content */
+        .content { padding: 24px 32px; overflow-y: auto; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Pipeline Page */
+        .mission-grid { display: grid; grid-template-columns: 1fr 1.6fr; grid-template-rows: auto 1fr; gap: 20px; height: calc(100vh - 120px); }
+
+        /* Pipeline Flow - Horizontal */
+        .pipeline-flow { grid-column: 1 / -1; display: flex; align-items: center; gap: 0; padding: 20px 24px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow-x: auto; }
+        .flow-node { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 110px; position: relative; }
+        .flow-node-dot { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-elevated); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--text-muted); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .flow-node.active .flow-node-dot { background: var(--accent-2); border-color: var(--accent-2); color: white; box-shadow: 0 0 20px rgba(99, 102, 241, 0.4); animation: nodePulse 2s infinite; }
+        .flow-node.completed .flow-node-dot { background: var(--success-muted); border-color: var(--success); color: var(--success); }
+        .flow-node.failed .flow-node-dot { background: var(--danger-muted); border-color: var(--danger); color: var(--danger); }
+        .flow-node-label { font-size: 11px; color: var(--text-muted); text-align: center; max-width: 90px; line-height: 1.3; }
+        .flow-node.active .flow-node-label { color: var(--text-primary); }
+        .flow-node.completed .flow-node-label { color: var(--success); }
+        .flow-connector { flex: 1; height: 2px; min-width: 40px; background: var(--border); position: relative; }
+        .flow-connector.active { background: linear-gradient(90deg, var(--accent-2), var(--accent-1)); animation: flowPulse 1.5s infinite; }
+        .flow-connector.completed { background: var(--success); }
+        @keyframes nodePulse { 0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4); } 50% { box-shadow: 0 0 30px rgba(99, 102, 241, 0.7); } }
+        @keyframes flowPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        /* Config Panel */
+        .config-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .panel-header h3 { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .panel-body { padding: 20px; flex: 1; overflow-y: auto; }
+
+        /* Form */
+        .field { margin-bottom: 14px; }
+        .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+        .field input, .field select, .field textarea { width: 100%; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: 'IBM Plex Mono', monospace; font-size: 13px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; }
+        .field textarea { resize: vertical; min-height: 56px; line-height: 1.5; }
+
+        /* Buttons */
+        .btn { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--gradient-main); color: white; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-ghost:hover { border-color: var(--border-bright); color: var(--text-primary); }
+        .btn-danger { background: var(--danger-muted); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+        .btn-block { width: 100%; justify-content: center; }
+
+        /* Console */
+        .console-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); display: flex; flex-direction: column; overflow: hidden; }
+        .console-body { flex: 1; overflow-y: auto; padding: 16px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.8; background: var(--bg-deep); margin: 12px; border-radius: var(--radius-sm); }
+        .log-entry { padding: 3px 0; display: flex; gap: 10px; align-items: flex-start; }
+        .log-time { color: var(--text-muted); font-size: 10px; flex-shrink: 0; min-width: 65px; }
+        .log-agent { font-weight: 500; flex-shrink: 0; min-width: 90px; }
+        .log-agent.orchestrator { color: var(--accent-1); }
+        .log-agent.browser { color: var(--accent-3); }
+        .log-agent.jira { color: var(--warning); }
+        .log-agent.system { color: var(--text-muted); }
+        .log-msg { color: var(--text-secondary); word-break: break-word; }
+        .log-entry.phase { color: var(--accent-1); font-weight: 600; padding: 8px 0; border-top: 1px solid var(--border); margin-top: 4px; }
+        .log-entry.tool .log-msg { color: var(--accent-3); }
+        .log-entry.error .log-msg { color: var(--danger); }
+        .console-empty { color: var(--text-muted); text-align: center; padding: 60px 20px; font-family: 'Space Grotesk', sans-serif; font-size: 14px; }
+        .console-empty span { display: block; margin-top: 8px; font-size: 12px; }
+
+        /* Agent Cards */
+        .agents-strip { grid-column: 1 / -1; display: none; gap: 12px; padding: 0; }
+        .agents-strip.visible { display: flex; }
+        .agent-card { flex: 1; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; transition: border-color 0.3s; }
+        .agent-card.active { border-color: var(--accent-2); }
+        .agent-card-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .agent-card-icon.purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-1); }
+        .agent-card-icon.cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-3); }
+        .agent-card-icon.amber { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .agent-card-icon.indigo { background: rgba(99, 102, 241, 0.15); color: var(--accent-2); }
+        .agent-card-info h4 { font-size: 12px; font-weight: 600; }
+        .agent-card-info p { font-size: 11px; color: var(--text-muted); }
+
+        /* Results Page */
+        .results-header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .metric-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+        .metric-card .metric-value { font-size: 32px; font-weight: 700; background: var(--gradient-main); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .metric-card.pass .metric-value { background: var(--success); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .metric-card.fail .metric-value { background: var(--danger); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .metric-card .metric-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Results Table */
+        .results-table { width: 100%; border-collapse: collapse; }
+        .results-table th { text-align: left; padding: 12px 16px; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
+        .results-table td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+        .results-table tr:hover td { background: var(--bg-surface); }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge-pass { background: var(--success-muted); color: var(--success); }
+        .badge-fail { background: var(--danger-muted); color: var(--danger); }
+        .badge-skip { background: var(--warning-muted); color: var(--warning); }
+
+        /* Bugs */
+        .bug-list { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+        .bug-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+        .bug-card .bug-severity { width: 4px; height: 32px; border-radius: 2px; background: var(--danger); }
+        .bug-card .bug-key { font-weight: 600; color: var(--accent-2); font-size: 13px; }
+        .bug-card .bug-title { font-size: 12px; color: var(--text-secondary); }
+
+        /* Settings Page */
+        .settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 860px; }
+        .settings-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+        .settings-card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .settings-card-header .icon { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .settings-card-header .icon.azure { background: rgba(99, 102, 241, 0.15); color: var(--accent-2); }
+        .settings-card-header .icon.jira { background: rgba(6, 182, 212, 0.15); color: var(--accent-3); }
+        .settings-card-header .icon.browser { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .settings-card-body { padding: 20px; }
+        .settings-actions { margin-top: 24px; display: flex; gap: 10px; }
+
+        /* Prerequisites Banner */
+        .prereq-banner { background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px; }
+        .prereq-banner .prereq-title { font-size: 12px; font-weight: 600; color: var(--accent-2); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .prereq-banner .prereq-title svg { flex-shrink: 0; }
+        .prereq-banner ul { list-style: none; padding: 0; margin: 0; }
+        .prereq-banner ul li { font-size: 12px; color: var(--text-secondary); padding: 3px 0; display: flex; align-items: center; gap: 8px; }
+        .prereq-banner ul li::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--accent-2); flex-shrink: 0; }
+        .prereq-banner ul li .prereq-nav-link { color: var(--accent-3); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+        .prereq-banner ul li .prereq-nav-link:hover { color: var(--text-primary); }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; z-index: 1000; display: none; backdrop-filter: blur(10px); }
+        .toast.success { background: var(--success-muted); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.3); }
+
+        /* Timer */
+        .timer { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-muted); padding: 6px 12px; background: var(--bg-surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+        /* Responsive */
+        @media (max-width: 1024px) { .mission-grid { grid-template-columns: 1fr; } .settings-layout { grid-template-columns: 1fr; } .results-header { grid-template-columns: repeat(2, 1fr); } .agents-strip { flex-wrap: wrap; } }
+    </style>
+</head>
+<body>
+    <div class="ambient"></div>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">
+                <div class="brand-icon">Q</div>
+                <div>
+                    <h1>Agentic QA Maestro</h1>
+                    <span>Multi-Agent Testing Framework</span>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <button class="active" onclick="showPage('pipeline')">Pipeline</button>
+                <button onclick="showPage('results')">Results</button>
+                <button onclick="showPage('settings')">Settings</button>
+            </nav>
+            <div class="header-status">
+                <div class="dot" id="status-dot"></div>
+                <span id="status-text">6 agents ready</span>
+                <div class="timer" id="timer" style="display:none;">00:00</div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Pipeline Page -->
+            <div class="page active" id="page-pipeline">
+                <!-- Agent Cards -->
+                <div class="agents-strip" id="agents-strip">
+                    <div class="agent-card" id="ac-orchestrator">
+                        <div class="agent-card-icon purple">&#9670;</div>
+                        <div class="agent-card-info"><h4>Orchestrator</h4><p>Idle</p></div>
+                    </div>
+                    <div class="agent-card" id="ac-browser">
+                        <div class="agent-card-icon cyan">&#9671;</div>
+                        <div class="agent-card-info"><h4>Browser Agent</h4><p>Idle</p></div>
+                    </div>
+                    <div class="agent-card" id="ac-jira">
+                        <div class="agent-card-icon amber">&#9672;</div>
+                        <div class="agent-card-info"><h4>JIRA Agent</h4><p>Idle</p></div>
+                    </div>
+                    <div class="agent-card" id="ac-testrunner">
+                        <div class="agent-card-icon indigo">&#9673;</div>
+                        <div class="agent-card-info"><h4>Test Runner</h4><p>Idle</p></div>
+                    </div>
+                </div>
+
+                <div class="mission-grid">
+                    <!-- Pipeline Flow -->
+                    <div class="pipeline-flow" id="pipeline-flow">
+                        <div class="flow-node" data-phase="1"><div class="flow-node-dot">1</div><div class="flow-node-label">Requirements</div></div>
+                        <div class="flow-connector" data-conn="1"></div>
+                        <div class="flow-node" data-phase="2"><div class="flow-node-dot">2</div><div class="flow-node-label">Discovery</div></div>
+                        <div class="flow-connector" data-conn="2"></div>
+                        <div class="flow-node" data-phase="3"><div class="flow-node-dot">3</div><div class="flow-node-label">Test Gen</div></div>
+                        <div class="flow-connector" data-conn="3"></div>
+                        <div class="flow-node" data-phase="4"><div class="flow-node-dot">4</div><div class="flow-node-label">Execution</div></div>
+                        <div class="flow-connector" data-conn="4"></div>
+                        <div class="flow-node" data-phase="5"><div class="flow-node-dot">5</div><div class="flow-node-label">Bug Report</div></div>
+                        <div class="flow-connector" data-conn="5"></div>
+                        <div class="flow-node" data-phase="6"><div class="flow-node-dot">6</div><div class="flow-node-label">Cleanup</div></div>
+                    </div>
+
+                    <!-- Config Panel -->
+                    <div class="config-panel">
+                        <div class="panel-header"><h3>Run Configuration</h3></div>
+                        <div class="panel-body">
+                            <div class="prereq-banner">
+                                <div class="prereq-title">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                    Mandatory Settings (configure in <span class="prereq-nav-link" onclick="showPage('settings')">Settings</span>)
+                                </div>
+                                <ul>
+                                    <li>Azure OpenAI Endpoint</li>
+                                    <li>Azure OpenAI API Key</li>
+                                    <li>Azure OpenAI Model Name</li>
+                                    <li>JIRA Base URL</li>
+                                    <li>JIRA Personal Access Token (PAT)</li>
+                                    <li>JIRA Project Key</li>
+                                </ul>
+                            </div>
+                            <form id="pipeline-form" onsubmit="runPipeline(event)">
+                                <div class="field">
+                                    <label>JIRA Ticket</label>
+                                    <input type="text" id="input-ticket" placeholder="SACP-274914" required>
+                                </div>
+                                <div class="field">
+                                    <label>Target URL</label>
+                                    <input type="url" id="input-url" placeholder="https://app.example.com/login" required>
+                                </div>
+                                <div class="field">
+                                    <label>Username</label>
+                                    <input type="text" id="input-username" placeholder="Application username" required>
+                                </div>
+                                <div class="field">
+                                    <label>Password</label>
+                                    <input type="password" id="input-password" placeholder="Application password" required>
+                                </div>
+                                <div class="field">
+                                    <label>Navigation Hints <span style="text-transform:none;font-weight:400;color:var(--text-muted)">(optional)</span></label>
+                                    <textarea id="input-nav-hints" placeholder="e.g. After login, open Apps menu and type 'ErrorViewer' in the search box, then click it" rows="3"></textarea>
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 18px;">
+                                    <button type="submit" class="btn btn-primary btn-block" id="btn-run">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        Execute Pipeline
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-danger btn-block" id="btn-stop" style="display:none; margin-top: 8px;" onclick="stopPipeline()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                                    Abort
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Console -->
+                    <div class="console-panel">
+                        <div class="panel-header">
+                            <h3>Live Agent Activity</h3>
+                            <button class="btn btn-ghost" style="padding:5px 10px; font-size:11px;" onclick="clearConsole()">Clear</button>
+                        </div>
+                        <div class="console-body" id="console">
+                            <div class="console-empty">
+                                Waiting for pipeline execution
+                                <span>Configure and run to see real-time agent activity</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Page -->
+            <div class="page" id="page-results">
+                <div class="results-header">
+                    <div class="metric-card"><div class="metric-value" id="m-total">0</div><div class="metric-label">Total Tests</div></div>
+                    <div class="metric-card pass"><div class="metric-value" id="m-pass">0</div><div class="metric-label">Passed</div></div>
+                    <div class="metric-card fail"><div class="metric-value" id="m-fail">0</div><div class="metric-label">Failed</div></div>
+                    <div class="metric-card"><div class="metric-value" id="m-dur">--</div><div class="metric-label">Duration</div></div>
+                </div>
+
+                <div style="background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;">
+                    <table class="results-table" id="results-table">
+                        <thead><tr><th>ID</th><th>Test Case</th><th>Status</th><th>Agent</th><th>Evidence</th></tr></thead>
+                        <tbody id="results-body">
+                            <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">No results yet. Run a pipeline to see test outcomes.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bug-list" id="bug-list" style="display:none;">
+                    <h3 style="font-size:14px; margin-bottom:8px; color:var(--danger);">Defects Created</h3>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div class="page" id="page-settings">
+                <div class="settings-layout">
+                    <div class="settings-card">
+                        <div class="settings-card-header"><div class="icon azure">&#9679;</div> Azure OpenAI</div>
+                        <div class="settings-card-body">
+                            <div class="field"><label>Endpoint</label><input type="url" id="s-endpoint" placeholder="https://your-resource.openai.azure.com/"></div>
+                            <div class="field"><label>API Key</label><input type="password" id="s-key" placeholder="Enter API key"></div>
+                            <div class="field"><label>Model</label><input type="text" id="s-model" placeholder="gpt-4.1"></div>
+                            <div class="field"><label>API Version</label><input type="text" id="s-version" placeholder="2024-12-01-preview"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="settings-card">
+                            <div class="settings-card-header"><div class="icon jira">&#9679;</div> JIRA Integration</div>
+                            <div class="settings-card-body">
+                                <div class="field"><label>Base URL</label><input type="url" id="s-jira-url" placeholder="https://jira.example.com"></div>
+                                <div class="field"><label>Personal Access Token</label><input type="password" id="s-jira-pat" placeholder="Enter JIRA PAT"></div>
+                                <div class="field"><label>Project Key</label><input type="text" id="s-jira-project" placeholder="SACP"></div>
+                            </div>
+                        </div>
+                        <div class="settings-card" style="margin-top: 16px;">
+                            <div class="settings-card-header"><div class="icon browser">&#9679;</div> Browser</div>
+                            <div class="settings-card-body">
+                                <div class="field"><label>Mode</label>
+                                    <select id="s-headless"><option value="true">Headless</option><option value="false">Headed (visible)</option></select>
+                                </div>
+                                <div class="field"><label>Screenshot Dir</label><input type="text" id="s-ss-dir" value="test_evidence/"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                    <button class="btn btn-ghost" onclick="loadSettings()">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast success" id="toast">Settings saved</div>
+
+    <script>
+    let running = false, startTime = null, timerRef = null, currentPhase = 0, results = [], bugs = [];
+
+    // Navigation
+    function showPage(p) {
+        document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+        document.getElementById('page-' + p).classList.add('active');
+        document.querySelectorAll('.header-nav button').forEach(b => {
+            b.classList.toggle('active', b.textContent.toLowerCase() === p);
+        });
+    }
+
+    // Status
+    async function checkStatus() {
+        try {
+            const r = await fetch('/api/status');
+            const d = await r.json();
+            document.getElementById('status-dot').style.background = d.status === 'running' ? 'var(--success)' : 'var(--text-muted)';
+            document.getElementById('status-text').textContent = d.agents ? d.agents.length + ' agents ready' : 'Offline';
+        } catch(e) {
+            document.getElementById('status-dot').style.background = 'var(--danger)';
+            document.getElementById('status-text').textContent = 'Offline';
+        }
+    }
+
+    // Timer
+    function startTimer() {
+        startTime = Date.now();
+        document.getElementById('timer').style.display = 'block';
+        timerRef = setInterval(() => {
+            const s = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+            document.getElementById('m-dur').textContent = (s >= 60 ? Math.floor(s/60)+'m ' : '') + (s%60) + 's';
+        }, 1000);
+    }
+    function stopTimer() { clearInterval(timerRef); }
+
+    // Flow
+    function setPhase(n, state) {
+        const node = document.querySelector(`.flow-node[data-phase="${n}"]`);
+        if (!node) return;
+        node.className = 'flow-node ' + state;
+        if (state === 'active' || state === 'completed') {
+            const conn = document.querySelector(`.flow-connector[data-conn="${n-1}"]`);
+            if (conn) conn.className = 'flow-connector completed';
+        }
+        if (state === 'active') {
+            const conn = document.querySelector(`.flow-connector[data-conn="${n}"]`);
+            if (conn) conn.className = 'flow-connector active';
+        }
+    }
+
+    // Console
+    function log(agent, msg, type) {
+        const el = document.getElementById('console');
+        if (el.querySelector('.console-empty')) el.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'log-entry' + (type ? ' ' + type : '');
+        const ts = new Date().toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        const agentCls = agent.includes('browser') ? 'browser' : agent.includes('jira') ? 'jira' : agent === 'system' ? 'system' : 'orchestrator';
+        if (type === 'phase') {
+            div.innerHTML = `<span class="log-time">${ts}</span><span class="log-msg" style="color:var(--accent-1);font-weight:600;">${msg}</span>`;
+        } else {
+            div.innerHTML = `<span class="log-time">${ts}</span><span class="log-agent ${agentCls}">${agent}</span><span class="log-msg">${msg}</span>`;
+        }
+        el.appendChild(div);
+        el.scrollTop = el.scrollHeight;
+    }
+    function clearConsole() { document.getElementById('console').innerHTML = '<div class="console-empty">Waiting for pipeline execution<span>Configure and run to see real-time agent activity</span></div>'; }
+
+    // Agent cards
+    function setAgentStatus(agent, status) {
+        const map = {orchestrator:'ac-orchestrator', browser_agent:'ac-browser', jira_agent:'ac-jira', test_runner_agent:'ac-testrunner'};
+        const card = document.getElementById(map[agent] || map.orchestrator);
+        if (!card) return;
+        card.querySelector('p').textContent = status;
+        card.classList.toggle('active', status !== 'Idle');
+    }
+
+    // Results
+    function addResult(id, title, status, evidence) {
+        results.push({id, title, status, evidence});
+        const tbody = document.getElementById('results-body');
+        if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
+        const cls = status === 'PASS' ? 'badge-pass' : status === 'FAIL' ? 'badge-fail' : 'badge-skip';
+        tbody.innerHTML += `<tr><td style="font-weight:600">${id}</td><td>${title}</td><td><span class="badge ${cls}">${status}</span></td><td>Multi-Agent</td><td>${evidence||'\u2014'}</td></tr>`;
+        updateMetrics();
+    }
+    function updateMetrics() {
+        document.getElementById('m-total').textContent = results.length;
+        document.getElementById('m-pass').textContent = results.filter(r=>r.status==='PASS').length;
+        document.getElementById('m-fail').textContent = results.filter(r=>r.status!=='PASS').length;
+    }
+    function addBug(key, summary) {
+        bugs.push({key, summary});
+        const list = document.getElementById('bug-list');
+        list.style.display = 'block';
+        list.innerHTML += `<div class="bug-card"><div class="bug-severity"></div><div><div class="bug-key">${key}</div><div class="bug-title">${summary}</div></div></div>`;
+    }
+
+    // Pipeline
+    async function runPipeline(e) {
+        e.preventDefault();
+        if (running) return;
+        const ticket = document.getElementById('input-ticket').value;
+        const url = document.getElementById('input-url').value;
+        const username = document.getElementById('input-username').value;
+        const password = document.getElementById('input-password').value;
+        const nav_hints = document.getElementById('input-nav-hints').value.trim();
+
+        running = true; currentPhase = 0; results = []; bugs = [];
+        document.getElementById('btn-run').disabled = true;
+        document.getElementById('btn-stop').style.display = 'flex';
+        document.getElementById('agents-strip').classList.add('visible');
+        document.getElementById('results-body').innerHTML = '';
+        document.getElementById('bug-list').style.display = 'none';
+        document.getElementById('bug-list').querySelectorAll('.bug-card').forEach(c=>c.remove());
+        document.querySelectorAll('.flow-node').forEach(n => n.className = 'flow-node');
+        document.querySelectorAll('.flow-connector').forEach(c => c.className = 'flow-connector');
+        clearConsole();
+        startTimer();
+        log('system', `Pipeline started for ${ticket}`, 'phase');
+
+        try {
+            const res = await fetch('/api/pipeline', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ticket, url, username, password, nav_hints}),
+            });
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = '';
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, {stream:true});
+                const lines = buf.split('\n'); buf = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const json = line.slice(6);
+                    if (json === '[DONE]') continue;
+                    try { handleEvent(JSON.parse(json)); } catch(e){}
+                }
+            }
+        } catch(err) { log('system', err.message, 'error'); }
+        finally { finish(); }
+    }
+
+    function handleEvent(ev) {
+        switch(ev.type) {
+            case 'phase_start':
+                if (currentPhase > 0) setPhase(currentPhase, 'completed');
+                currentPhase = ev.phase;
+                setPhase(ev.phase, 'active');
+                log('system', `Phase ${ev.phase} \u2014 ${ev.name}`, 'phase');
+                break;
+            case 'phase_end':
+                setPhase(ev.phase, ev.status === 'ok' ? 'completed' : 'failed');
+                break;
+            case 'agent_message':
+                log(ev.agent, ev.content, '');
+                setAgentStatus(ev.agent, 'Working');
+                break;
+            case 'tool_call':
+                log(ev.agent, `\u2192 ${ev.tool}`, 'tool');
+                setAgentStatus(ev.agent, ev.tool);
+                break;
+            case 'test_result':
+                addResult(ev.id, ev.title, ev.status, ev.evidence);
+                break;
+            case 'bug_created':
+                addBug(ev.key, ev.summary);
+                break;
+            case 'pipeline_complete':
+                log('system', `Complete \u2014 ${ev.summary}`, 'phase');
+                if (currentPhase > 0) setPhase(currentPhase, 'completed');
+                break;
+            case 'error':
+                log('system', ev.message, 'error');
+                break;
+        }
+    }
+
+    function finish() {
+        running = false;
+        document.getElementById('btn-run').disabled = false;
+        document.getElementById('btn-stop').style.display = 'none';
+        stopTimer();
+        updateMetrics();
+        ['orchestrator','browser_agent','jira_agent','test_runner_agent'].forEach(a => setAgentStatus(a, 'Idle'));
+    }
+
+    function stopPipeline() {
+        fetch('/api/pipeline/stop', {method:'POST'});
+        log('system', 'Pipeline aborted by user', 'phase');
+        finish();
+    }
+
+    // Settings
+    function saveSettings() {
+        const s = {
+            azure_endpoint: document.getElementById('s-endpoint').value,
+            azure_key: document.getElementById('s-key').value,
+            azure_model: document.getElementById('s-model').value,
+            azure_version: document.getElementById('s-version').value,
+            jira_url: document.getElementById('s-jira-url').value,
+            jira_pat: document.getElementById('s-jira-pat').value,
+            jira_project: document.getElementById('s-jira-project').value,
+            headless: document.getElementById('s-headless').value,
+            screenshot_dir: document.getElementById('s-ss-dir').value,
+        };
+        fetch('/api/settings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(s)}).then(() => {
+            const t = document.getElementById('toast'); t.style.display = 'block'; setTimeout(()=>t.style.display='none', 3000);
+        });
+    }
+    function loadSettings() {
+        fetch('/api/settings').then(r=>r.json()).then(s => {
+            if(s.azure_endpoint) document.getElementById('s-endpoint').value = s.azure_endpoint;
+            if(s.azure_model) document.getElementById('s-model').value = s.azure_model;
+            if(s.azure_version) document.getElementById('s-version').value = s.azure_version;
+            if(s.jira_url) document.getElementById('s-jira-url').value = s.jira_url;
+            if(s.jira_project) document.getElementById('s-jira-project').value = s.jira_project;
+            if(s.headless) document.getElementById('s-headless').value = s.headless;
+            if(s.screenshot_dir) document.getElementById('s-ss-dir').value = s.screenshot_dir;
+        });
+    }
+
+    checkStatus(); loadSettings(); setInterval(checkStatus, 15000);
+    </script>
+</body>
+</html>
