@@ -1,9 +1,7 @@
 # Agentic QA Maestro - Application Configuration
 # Powered by Microsoft Agent Framework
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Models: LLM endpoint configurations
-# ─────────────────────────────────────────────────────────────────────────────
 models:
   default:
     endpoint: ${env:DEFAULT_OPENAI_ENDPOINT}
@@ -11,9 +9,7 @@ models:
     api_key: ${env:AZURE_OPENAI_API_KEY}
     api_version: ${env:DEFAULT_OPENAI_API_VERSION}
 
-# ─────────────────────────────────────────────────────────────────────────────
 # MCP Servers: Tool servers providing capabilities to agents
-# ─────────────────────────────────────────────────────────────────────────────
 mcp:
   servers:
     playwright:
@@ -41,9 +37,7 @@ mcp:
       run: "mcp_servers/mcp_time_server.py"
       port: 9005
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Agents: Specialized AI agents with specific roles and tool access
-# ─────────────────────────────────────────────────────────────────────────────
 agents:
   orchestrator:
     model: default
@@ -91,22 +85,16 @@ agents:
     tools: []
     reflect_on_tool_use: true
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Teams: Agent orchestration patterns
-# ─────────────────────────────────────────────────────────────────────────────
 teams:
-  # Interactive mode: Agent-based orchestrator dynamically picks the next agent
-  # Interactive / analysis-only mode (no browser)
   interactive:
     type: group_chat
     max_messages: 40
 
-  # Full E2E mode with browser testing
   e2e_full:
     type: group_chat
     max_messages: 80
 
-  # Pipeline mode: Deterministic sequential execution
   e2e_test_pipeline:
     type: sequential
     steps:
@@ -114,20 +102,16 @@ teams:
       - agent: api_agent
       - agent: jira_agent
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Observability: Tracing and logging configuration
-# ─────────────────────────────────────────────────────────────────────────────
 observability:
   tracing:
     enabled: true
-    exporter: console  # console | otlp | azure_monitor
+    exporter: console
     service_name: "agentic-qa-maestro"
   logging:
     level: INFO
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Web UI: Dashboard configuration
-# ─────────────────────────────────────────────────────────────────────────────
 web_ui:
   enabled: true
   host: "0.0.0.0"

@@ -9,15 +9,73 @@ import asyncio
 import os
 import signal
 import sys
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from agent_framework import AgentResponseUpdate, Message
+from dotenv import load_dotenv
 
 from agentic_qa_maestro.config import AppConfig
 from agentic_qa_maestro.models.azure_openai import create_model_clients_from_config
 from agentic_qa_maestro.agents.factory import create_agents_from_config
+from agentic_qa_maestro.runtime_assets import scaffold_runtime_files
 from agentic_qa_maestro.teams.group_chat_team import create_group_chat_team
 from agentic_qa_maestro.teams.sequential_team import create_sequential_team
+
+
+def _bootstrap_runtime_environment() -> None:
+    """Load the local .env and default SSL trust settings for CLI execution."""
+    project_root = Path(__file__).resolve().parent.parent
+    local_env = project_root / ".env"
+    if local_env.exists():
+        load_dotenv(local_env, override=True)
+
+    combined_bundle = project_root / ".venv" / "combined_ca_bundle.pem"
+    if combined_bundle.exists():
+        os.environ.setdefault("SSL_CERT_FILE", str(combined_bundle))
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", str(combined_bundle))
+    elif os.path.exists("/etc/ssl/cert.pem"):
+        os.environ.setdefault("SSL_CERT_FILE", "/etc/ssl/cert.pem")
+        os.environ.setdefault("REQUESTS_CA_BUNDLE", "/etc/ssl/cert.pem")
+
+
+def _run_init_command(argv: list[str]) -> int:
+    """Scaffold local runtime files for installed-package usage."""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="qa-maestro init",
+        description="Create local runtime files for Agentic QA Maestro.",
+    )
+    parser.add_argument(
+        "--path",
+        default=".",
+        help="Destination directory for application.yaml, .env, and app_flows/",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing files in the destination directory",
+    )
+    args = parser.parse_args(argv)
+
+    destination = Path(args.path).expanduser().resolve()
+    result = scaffold_runtime_files(destination, force=args.force)
+
+    print(f"Initialized Agentic QA Maestro files in {destination}")
+    if result["created"]:
+        print("Created:")
+        for path in result["created"]:
+            print(f"  - {path}")
+    if result["skipped"]:
+        print("Skipped existing files:")
+        for path in result["skipped"]:
+            print(f"  - {path}")
+
+    print("Next steps:")
+    print("  1. Edit .env with your Azure OpenAI and JIRA credentials")
+    print("  2. Run `playwright install chromium` before full browser E2E runs")
+    return 0
 
 
 class QAMaestro:
@@ -237,6 +295,60 @@ def _build_ticket_prompt(
     return prompt, None
 
 
+async def run_full_e2e_ticket(
+    jira_ticket: str,
+    target_url: str,
+    config_path: str = "application.yaml",
+    nav_hints: str = "",
+) -> bool:
+    """Run the full browser-based E2E ticket workflow via the dedicated pipeline path."""
+    _bootstrap_runtime_environment()
+
+    # Mirror the dedicated runner's behavior and ensure the local .env wins.
+    project_root = Path(__file__).resolve().parent.parent
+    local_env = project_root / ".env"
+    env_file = str(local_env) if local_env.exists() else None
+    if env_file:
+        load_dotenv(env_file, override=True)
+
+    _ = AppConfig(config_path=config_path, env_file=env_file)
+    maestro = QAMaestro(config_path=config_path)
+
+    try:
+        await maestro.initialize()
+
+        prompt, _max_messages = _build_ticket_prompt(jira_ticket, target_url, nav_hints)
+        team_config = maestro.config.teams.get("interactive", {})
+        team_config = {**team_config, "max_messages": 80}
+        workflow = create_group_chat_team(agents=maestro.agents, team_config=team_config)
+
+        last_response_id: Optional[str] = None
+        async for event in workflow.run(prompt, stream=True):
+            if event.type != "output":
+                continue
+
+            data = event.data
+            if isinstance(data, AgentResponseUpdate):
+                rid = data.response_id
+                if rid != last_response_id:
+                    if last_response_id is not None:
+                        print("\n")
+                    print(f"{data.author_name}:", end=" ", flush=True)
+                    last_response_id = rid
+                print(data.text or "", end="", flush=True)
+            elif isinstance(data, list):
+                print("\n" + "=" * 60)
+                print("\nFinal Conversation:\n")
+                for msg in data:
+                    if isinstance(msg, Message):
+                        name = msg.author_name or msg.role
+                        print(f"[{name}] {msg.text}\n")
+
+        return True
+    finally:
+        maestro.shutdown()
+
+
 async def async_main(
     config_path: Optional[str] = None,
     mode: str = "chat",
@@ -249,6 +361,7 @@ async def async_main(
     nav_hints: str = "",
 ) -> None:
     """Async main entry point."""
+    _bootstrap_runtime_environment()
     maestro = QAMaestro(config_path=config_path)
 
     def signal_handler(sig, frame):
@@ -259,8 +372,6 @@ async def async_main(
     signal.signal(signal.SIGTERM, signal_handler)
 
     try:
-        await maestro.initialize()
-
         if ticket:
             if target_url and (not username or not password):
                 raise ValueError("--username and --password are required when --url is provided")
@@ -270,6 +381,18 @@ async def async_main(
             if password:
                 os.environ["CREDENTIAL_PASSWORD"] = password
 
+            if target_url:
+                await run_full_e2e_ticket(
+                    jira_ticket=ticket,
+                    target_url=target_url,
+                    config_path=config_path or "application.yaml",
+                    nav_hints=nav_hints,
+                )
+                return
+
+        await maestro.initialize()
+
+        if ticket:
             prompt, max_messages = _build_ticket_prompt(ticket, target_url, nav_hints)
             await maestro.run_prompt(task=prompt, max_messages=max_messages)
         elif mode == "chat":
@@ -299,7 +422,13 @@ def main():
     """CLI entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Agentic QA Maestro")
+    if len(sys.argv) > 1 and sys.argv[1] == "init":
+        sys.exit(_run_init_command(sys.argv[2:]))
+
+    parser = argparse.ArgumentParser(
+        description="Agentic QA Maestro",
+        epilog="Bootstrap a local runtime directory with: qa-maestro init",
+    )
     parser.add_argument("--config", default="application.yaml", help="Path to configuration file")
     parser.add_argument(
         "--mode",

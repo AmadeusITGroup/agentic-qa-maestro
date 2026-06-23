@@ -14,6 +14,8 @@ from typing import Any, Dict, Optional
 import yaml
 from dotenv import load_dotenv
 
+from agentic_qa_maestro.runtime_assets import read_packaged_text
+
 
 class ConfigError(Exception):
     """Raised when there's an error in the application configuration."""
@@ -31,11 +33,14 @@ class AppConfig:
             load_dotenv(env_path)
 
         config_path = config_path or "application.yaml"
-        if not Path(config_path).exists():
+        config_file = Path(config_path)
+        if config_file.exists():
+            with open(config_file, "r") as f:
+                raw_config = yaml.safe_load(f)
+        elif config_path == "application.yaml":
+            raw_config = yaml.safe_load(read_packaged_text("application.yaml"))
+        else:
             raise ConfigError(f"Configuration file not found: {config_path}")
-
-        with open(config_path, "r") as f:
-            raw_config = yaml.safe_load(f)
 
         if not isinstance(raw_config, dict):
             raise ConfigError("Configuration must be a YAML dictionary")

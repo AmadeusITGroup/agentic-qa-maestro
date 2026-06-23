@@ -14,6 +14,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
 
 from agent_framework import AgentResponseUpdate, Message
 
@@ -34,6 +35,11 @@ _run_history: list = []
 async def startup():
     global _maestro
     try:
+        project_root = Path(__file__).resolve().parents[2]
+        local_env = project_root / ".env"
+        if local_env.exists():
+            load_dotenv(local_env, override=False)
+
         _maestro = QAMaestro()
         await _maestro.initialize()
         logger.info("Agentic QA Maestro initialized successfully")
@@ -260,6 +266,16 @@ async def _pipeline_stream(
     if not _maestro:
         yield _sse_event({"type": "error", "message": "QA Maestro is not initialized"})
         return
+
+    # Emit an immediate event so clients receive early bytes and keep the stream alive
+    # while agents initialize and the first model/tool output is pending.
+    yield _sse_event(
+        {
+            "type": "agent_message",
+            "agent": "system",
+            "content": "Pipeline accepted. Initializing agents...",
+        }
+    )
 
     # Set credentials for browser agent
     os.environ["CREDENTIAL_USERNAME"] = username
@@ -543,6 +559,7 @@ async def save_settings(request: Request):
     if body.get("jira_url"):
         os.environ["JIRA_BASE_URL"] = body["jira_url"]
     if body.get("jira_pat"):
+        os.environ["JIRA_PAT"] = body["jira_pat"]
         os.environ["JIRA_API_TOKEN"] = body["jira_pat"]
 
     # Persist non-sensitive settings

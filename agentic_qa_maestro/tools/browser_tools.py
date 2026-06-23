@@ -115,13 +115,39 @@ def _do_get_text(selector: str):
 def _do_get_page_content():
     """Internal: get cleaned page HTML."""
     global _page
-    html = _page.content()
-    # Strip scripts and styles
-    html = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL | re.IGNORECASE)
-    html = re.sub(r"<style[^>]*>.*?</style>", "", html, flags=re.DOTALL | re.IGNORECASE)
-    # Truncate
-    if len(html) > 8000:
-        html = html[:8000] + "\n... [truncated]"
+
+    def _clean_html(raw: str) -> str:
+        cleaned = re.sub(r"<script[^>]*>.*?</script>", "", raw, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r"<style[^>]*>.*?</style>", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+        return cleaned
+
+    parts = []
+
+    main_html = _clean_html(_page.content())
+    parts.append("=== MAIN PAGE ===")
+    parts.append(main_html)
+
+    # Include same-origin iframe content because many enterprise apps render key controls there.
+    for idx, frame in enumerate(_page.frames):
+        if frame == _page.main_frame:
+            continue
+        try:
+            frame_html = _clean_html(frame.content())
+        except Exception:
+            continue
+
+        if not frame_html.strip():
+            continue
+
+        parts.append(f"\n=== IFRAME {idx} | URL: {frame.url} ===")
+        parts.append(frame_html)
+
+    html = "\n".join(parts)
+
+    # Keep output bounded for token efficiency.
+    if len(html) > 16000:
+        html = html[:16000] + "\n... [truncated]"
+
     return html
 
 

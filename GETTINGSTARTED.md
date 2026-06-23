@@ -22,15 +22,22 @@ if you want an isolated CLI installation.
 ## Configuration
 
 ```bash
-# Copy the example environment file
-cp example.env .env
+# Scaffold local runtime files
+qa-maestro init
 ```
+
+This creates:
+
+- `application.yaml`
+- `.env`
+- `app_flows/example-app.yaml`
 
 Edit `.env` with your credentials:
 
 ```dotenv
 # Azure OpenAI (mandatory)
 DEFAULT_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+DEFAULT_OPENAI_DEPLOYMENT=your-deployment-name
 AZURE_OPENAI_API_KEY=your-api-key-here
 DEFAULT_OPENAI_API_VERSION=2024-12-01-preview
 
@@ -40,6 +47,14 @@ JIRA_API_TOKEN=your-jira-api-token
 ```
 
 All secrets are loaded via environment variables — never hardcode them in config files.
+
+## Browser Setup
+
+Install Playwright's Chromium binary once before running the full E2E pipeline:
+
+```bash
+playwright install chromium
+```
 
 ## Run Tests
 
@@ -97,7 +112,7 @@ qa-maestro \
 ## Start the Web UI
 
 ```bash
-uvicorn agentic_qa_maestro.web_ui.app:app --port 8000
+python -m uvicorn agentic_qa_maestro.web_ui.app:app --port 8000
 ```
 
 Open http://localhost:8000 in your browser.

@@ -1,0 +1,28 @@
+app:
+  name: Example App
+  base_url: https://app.example.com
+  description: Sample app flow definition bundled with Agentic QA Maestro.
+
+pages:
+  - name: Login
+    path: /login
+    description: Default login screen
+    selectors:
+      username_input: input[name="username"]
+      password_input: input[type="password"]
+      submit_button: button[type="submit"]
+
+flows:
+  - name: Basic Login
+    steps:
+      - action: fill
+        selector: input[name="username"]
+      - action: fill
+        selector: input[type="password"]
+      - action: click
+        selector: button[type="submit"]
+
+known_features:
+  - name: Login form
+    available: true
+    notes: Sample selectors only; replace with your app-specific flow data.

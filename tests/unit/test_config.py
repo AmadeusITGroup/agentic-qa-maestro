@@ -1,11 +1,13 @@
 """Unit tests for Agentic QA Maestro configuration loader."""
 
 import os
+from pathlib import Path
 
 import pytest
 import yaml
 
 from agentic_qa_maestro.config import AppConfig, ConfigError
+from agentic_qa_maestro.runtime_assets import scaffold_runtime_files
 
 
 @pytest.fixture
@@ -94,3 +96,28 @@ def test_this_reference_substitution(tmp_path):
 
     app_config = AppConfig(config_path=str(config_path))
     assert app_config.agents["api_agent"]["endpoint"] == "https://api.example.com"
+
+
+def test_load_packaged_default_config_without_local_file(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("DEFAULT_OPENAI_ENDPOINT", "https://example.openai.azure.com/")
+    monkeypatch.setenv("DEFAULT_OPENAI_DEPLOYMENT", "gpt-test")
+    monkeypatch.setenv("AZURE_OPENAI_API_KEY", "dummy-key")
+    monkeypatch.setenv("DEFAULT_OPENAI_API_VERSION", "2024-12-01-preview")
+    monkeypatch.setenv("JIRA_BASE_URL", "https://jira.example.com")
+    monkeypatch.setenv("JIRA_API_TOKEN", "dummy-token")
+
+    config = AppConfig()
+    assert config.models["default"]["deployment"] == "gpt-test"
+    assert config.mcp_servers["jira"]["env"]["JIRA_URL"] == "https://jira.example.com"
+
+
+def test_scaffold_runtime_files_creates_templates(tmp_path):
+    result = scaffold_runtime_files(tmp_path)
+
+    assert str(tmp_path / "application.yaml") in result["created"]
+    assert str(tmp_path / ".env") in result["created"]
+    assert str(tmp_path / "app_flows" / "example-app.yaml") in result["created"]
+    assert (tmp_path / "application.yaml").exists()
+    assert (tmp_path / ".env").exists()
+    assert (tmp_path / "app_flows" / "example-app.yaml").exists()

@@ -12,27 +12,31 @@ from typing import Any
 import yaml
 from agent_framework import tool
 
+from agentic_qa_maestro.runtime_assets import iter_packaged_app_flows
+
 
 def _resolve_app_flows_dir() -> Path:
-    """Resolve the app_flows directory relative to the project root."""
-    # Check env var first, then default to app_flows/ relative to cwd
+    """Resolve the preferred local app_flows directory."""
     flows_dir = os.environ.get("APP_FLOWS_DIR", "app_flows")
     return Path(flows_dir)
 
 
-def _load_all_flows() -> dict[str, Any]:
-    """Load all YAML files from the app_flows directory."""
+def _iter_flow_files():
+    """Yield local flow files first, then packaged defaults if none exist."""
     flows_dir = _resolve_app_flows_dir()
+    if flows_dir.exists():
+        return sorted(flows_dir.glob("*.yaml"), key=lambda entry: entry.name)
+    return list(iter_packaged_app_flows())
+
+
+def _load_all_flows() -> dict[str, Any]:
+    """Load all YAML files from the local or packaged app_flows directory."""
     all_flows: dict[str, Any] = {}
 
-    if not flows_dir.exists():
-        return all_flows
-
-    for yaml_file in sorted(flows_dir.glob("*.yaml")):
-        with open(yaml_file) as f:
-            data = yaml.safe_load(f)
-            if data:
-                all_flows[yaml_file.stem] = data
+    for yaml_file in _iter_flow_files():
+        data = yaml.safe_load(yaml_file.read_text(encoding="utf-8"))
+        if data:
+            all_flows[Path(yaml_file.name).stem] = data
 
     return all_flows
 
@@ -100,19 +104,14 @@ def get_app_knowledge() -> str:
 
 @tool
 def list_app_flows() -> str:
-    """List all available app flow files in the app_flows/ directory."""
-    flows_dir = _resolve_app_flows_dir()
-
-    if not flows_dir.exists():
-        return "No app_flows/ directory found."
-
-    files = sorted(flows_dir.glob("*.yaml"))
+    """List all available app flow files from local files or packaged defaults."""
+    files = _iter_flow_files()
     if not files:
-        return "app_flows/ directory exists but contains no YAML files."
+        return "No app flow files available."
 
     result = "Available app flow files:\n"
     for f in files:
-        result += f"  - {f.name}\n"
+        result += f"  - {Path(f.name).name}\n"
     return result
 
 
