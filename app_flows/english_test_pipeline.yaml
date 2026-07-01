@@ -1,0 +1,96 @@
+# English Test Case to Formatted Test Pipeline
+# Converts plain English test cases to structured format and executes them
+
+pipeline:
+  name: "English Test Case Pipeline"
+  description: "Convert plain English test cases to formatted tests and execute them"
+  
+  phases:
+    - id: 1
+      name: "Parse English Test Cases"
+      description: "Parse test cases from plain English text file"
+      inputs:
+        - test_cases_text: "Raw test cases in plain English"
+      outputs:
+        - parsed_test_cases: "List of structured test cases"
+      
+    - id: 2
+      name: "App Discovery"
+      description: "Login to application and discover UI elements"
+      inputs:
+        - app_url: "Target application URL"
+        - username: "Application username"
+        - password: "Application password"
+      outputs:
+        - discovered_selectors: "Map of discovered UI elements and selectors"
+        - page_structure: "Application page structure and navigation"
+      
+    - id: 3
+      name: "Test Formatting"
+      description: "Convert English test cases to formatted test format with real selectors"
+      inputs:
+        - parsed_test_cases: "Test cases from Phase 1"
+        - discovered_selectors: "Selectors from Phase 2"
+      outputs:
+        - formatted_test_cases: "Formatted test cases with steps and selectors"
+      
+    - id: 4
+      name: "Test Execution"
+      description: "Execute formatted test cases in browser"
+      inputs:
+        - formatted_test_cases: "Test cases from Phase 3"
+      outputs:
+        - test_results: "Test execution results with pass/fail status"
+        - screenshots: "Evidence screenshots"
+      
+    - id: 5
+      name: "Report Generation"
+      description: "Generate comprehensive test report"
+      inputs:
+        - test_results: "Results from Phase 4"
+      outputs:
+        - test_report: "HTML test report with detailed results"
+
+test_case_format:
+  structure: |
+    Test Case: <ID>
+    Title: <Title>
+    Description: <Brief Description>
+    Priority: <High/Medium/Low>
+    
+    Steps:
+    1. <Step 1 description>
+    2. <Step 2 description>
+    ...
+    
+    Expected Result: <Expected outcome>
+    
+  parsing_rules:
+    - Support markdown-style test cases
+    - Support numbered list format
+    - Support narrative format
+    - Extract actions (click, fill, navigate, verify)
+    - Extract assertions (should see, should contain)
+
+browser_automation:
+  capabilities:
+    - navigate_to_url: "Navigate to application"
+    - wait_for_element: "Wait for element to appear"
+    - click_element: "Click on element"
+    - fill_field: "Fill form fields"
+    - verify_text: "Verify text presence"
+    - take_screenshot: "Capture evidence"
+    - close_browser: "Clean up session"
+
+report_format:
+  structure:
+    - summary_metrics: "Total, Passed, Failed, Blocked counts"
+    - test_results_table: "Detailed test-by-test results"
+    - screenshots: "Evidence screenshots"
+    - execution_timeline: "Phase-by-phase timeline"
+    - errors_and_blockers: "List of errors encountered"
+    
+  export_formats:
+    - html: "Interactive HTML report"
+    - json: "JSON data format"
+    - pdf: "PDF document (if available)"
