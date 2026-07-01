@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=80", "setuptools-scm>=8"]
+requires = ["setuptools>=80"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -61,6 +61,13 @@ qa-maestro = "agentic_qa_maestro.main:main"
 
 [tool.setuptools.packages.find]
 include = ["agentic_qa_maestro*"]
+
+[tool.setuptools.package-data]
+agentic_qa_maestro = [
+    "resources/application.yaml",
+    "resources/example.env",
+    "resources/app_flows/*.yaml",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

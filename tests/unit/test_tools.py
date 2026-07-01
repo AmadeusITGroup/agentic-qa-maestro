@@ -57,3 +57,13 @@ def test_jira_tools_exist():
     assert len(JIRA_TOOLS) == 7
     tool_names = [getattr(t, "__name__", getattr(t, "name", "")) for t in JIRA_TOOLS]
     assert "jira_get_issue" in tool_names or any("jira_get_issue" in str(t) for t in JIRA_TOOLS)
+
+
+@af_required
+def test_packaged_app_flows_available(tmp_path, monkeypatch):
+    from agentic_qa_maestro.tools.app_knowledge_tools import list_app_flows
+
+    monkeypatch.chdir(tmp_path)
+    result = list_app_flows()
+
+    assert "example-app.yaml" in result

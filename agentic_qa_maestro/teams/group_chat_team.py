@@ -25,15 +25,27 @@ def create_group_chat_team(
 
     participants = [a for name, a in agents.items() if name != "orchestrator"]
 
-    workflow = (
-        GroupChatBuilder(
-            participants=participants,
-            termination_condition=lambda msgs: len(msgs) >= max_messages,
-            intermediate_outputs=True,
-            orchestrator_agent=orchestrator,
+    builder_kwargs = {
+        "participants": participants,
+        "termination_condition": lambda msgs: len(msgs) >= max_messages,
+        "orchestrator_agent": orchestrator,
+    }
+
+    # Keep compatibility across Agent Framework versions.
+    try:
+        builder = GroupChatBuilder(
+            **builder_kwargs,
+            intermediate_output_from="all",
         )
-        .with_termination_condition(lambda msgs: len(msgs) >= max_messages)
-        .build()
-    )
+    except TypeError:
+        try:
+            builder = GroupChatBuilder(
+                **builder_kwargs,
+                intermediate_outputs=True,
+            )
+        except TypeError:
+            builder = GroupChatBuilder(**builder_kwargs)
+
+    workflow = builder.with_termination_condition(lambda msgs: len(msgs) >= max_messages).build()
 
     return workflow

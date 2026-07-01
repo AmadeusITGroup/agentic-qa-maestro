@@ -92,6 +92,12 @@
         .field { margin-bottom: 14px; }
         .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
         .field input, .field select, .field textarea { width: 100%; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: 'IBM Plex Mono', monospace; font-size: 13px; transition: border-color 0.2s, box-shadow 0.2s; }
+        .field input[type=file] { display: none; }
+        .file-upload-label { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
+        .file-upload-label:hover { border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
+        .file-upload-label.has-file { border-color: var(--success); }
+        .file-upload-btn { background: var(--bg-elevated); color: var(--text-primary); padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .file-upload-name { color: var(--text-muted); font-size: 12px; font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
         .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); font-family: 'Space Grotesk', sans-serif; }
         .field textarea { resize: vertical; min-height: 56px; line-height: 1.5; }
@@ -214,6 +220,7 @@
             </div>
             <nav class="header-nav">
                 <button class="active" onclick="showPage('pipeline')">Pipeline</button>
+                <button onclick="showPage('english-pipeline')">Test Suite</button>
                 <button onclick="showPage('results')">Results</button>
                 <button onclick="showPage('settings')">Settings</button>
             </nav>
@@ -260,8 +267,6 @@
                         <div class="flow-node" data-phase="4"><div class="flow-node-dot">4</div><div class="flow-node-label">Execution</div></div>
                         <div class="flow-connector" data-conn="4"></div>
                         <div class="flow-node" data-phase="5"><div class="flow-node-dot">5</div><div class="flow-node-label">Bug Report</div></div>
-                        <div class="flow-connector" data-conn="5"></div>
-                        <div class="flow-node" data-phase="6"><div class="flow-node-dot">6</div><div class="flow-node-label">Cleanup</div></div>
                     </div>
 
                     <!-- Config Panel -->
@@ -327,6 +332,77 @@
                             <div class="console-empty">
                                 Waiting for pipeline execution
                                 <span>Configure and run to see real-time agent activity</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- English Test Pipeline Page -->
+            <div class="page" id="page-english-pipeline">
+                <div class="mission-grid">
+                    <!-- Pipeline Flow for English Pipeline -->
+                    <div class="pipeline-flow" id="english-pipeline-flow">
+                        <div class="flow-node" data-phase="1"><div class="flow-node-dot">1</div><div class="flow-node-label">Parse Cases</div></div>
+                        <div class="flow-connector" data-conn="1"></div>
+                        <div class="flow-node" data-phase="2"><div class="flow-node-dot">2</div><div class="flow-node-label">Discovery</div></div>
+                        <div class="flow-connector" data-conn="2"></div>
+                        <div class="flow-node" data-phase="3"><div class="flow-node-dot">3</div><div class="flow-node-label">Format</div></div>
+                        <div class="flow-connector" data-conn="3"></div>
+                        <div class="flow-node" data-phase="4"><div class="flow-node-dot">4</div><div class="flow-node-label">Execute</div></div>
+                        <div class="flow-connector" data-conn="4"></div>
+                        <div class="flow-node" data-phase="5"><div class="flow-node-dot">5</div><div class="flow-node-label">Report</div></div>
+                    </div>
+
+                    <!-- Config Panel for English Pipeline -->
+                    <div class="config-panel">
+                        <div class="panel-header"><h3>Test Suite Configuration</h3></div>
+                        <div class="panel-body">
+                            <form id="english-pipeline-form" onsubmit="runEnglishPipeline(event)">
+                                <div class="field">
+                                    <label>Test Cases File (.txt or .md)</label>
+                                    <input type="file" id="input-test-file" accept=".txt,.md" onchange="updateFileName(this)">
+                                    <label for="input-test-file" class="file-upload-label" id="file-upload-label">
+                                        <span class="file-upload-btn">Choose File</span>
+                                        <span class="file-upload-name" id="file-upload-name">No file selected</span>
+                                    </label>
+                                </div>
+                                <div class="field">
+                                    <label>Target URL</label>
+                                    <input type="text" id="input-english-url" placeholder="https://app.example.com/login">
+                                </div>
+                                <div class="field">
+                                    <label>Username</label>
+                                    <input type="text" id="input-english-username" placeholder="Application username">
+                                </div>
+                                <div class="field">
+                                    <label>Password</label>
+                                    <input type="password" id="input-english-password" placeholder="Application password">
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 18px;">
+                                    <button type="submit" class="btn btn-primary btn-block" id="btn-english-run">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        Run Test Suite
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-danger btn-block" id="btn-english-stop" style="display:none; margin-top: 8px;" onclick="stopEnglishPipeline()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                                    Abort
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Console for English Pipeline -->
+                    <div class="console-panel">
+                        <div class="panel-header">
+                            <h3>Test Execution Log</h3>
+                            <button class="btn btn-ghost" style="padding:5px 10px; font-size:11px;" onclick="clearEnglishConsole()">Clear</button>
+                        </div>
+                        <div class="console-body" id="english-console">
+                            <div class="console-empty">
+                                Ready to run test suite
+                                <span>Upload test file and configure application details</span>
                             </div>
                         </div>
                     </div>
@@ -626,6 +702,204 @@
     }
 
     checkStatus(); loadSettings(); setInterval(checkStatus, 15000);
+
+    function updateFileName(input) {
+        const label = document.getElementById('file-upload-label');
+        const nameEl = document.getElementById('file-upload-name');
+        if (input.files[0]) {
+            nameEl.textContent = input.files[0].name;
+            nameEl.style.color = 'var(--success)';
+            label.classList.add('has-file');
+        } else {
+            nameEl.textContent = 'No file selected';
+            nameEl.style.color = '';
+            label.classList.remove('has-file');
+        }
+    }
+
+    let englishRunning = false;
+    let englishStartTime = null;
+    let englishTimerRef = null;
+    let englishCurrentPhase = 0;
+    let englishResults = [];
+
+    async function runEnglishPipeline(e) {
+        e.preventDefault();
+        if (englishRunning) return;
+        
+        const fileInput = document.getElementById('input-test-file');
+        const url = document.getElementById('input-english-url').value;
+        const username = document.getElementById('input-english-username').value;
+        const password = document.getElementById('input-english-password').value;
+        
+        if (!fileInput.files[0] || !url || !username || !password) {
+            alert('Please fill all fields and select a test file');
+            return;
+        }
+        
+        // Read file
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            const testCasesText = evt.target.result;
+            
+            englishRunning = true;
+            document.getElementById('btn-english-run').disabled = true;
+            document.getElementById('btn-english-stop').style.display = 'inline-flex';
+            clearEnglishConsole();
+            englishResults = [];
+            englishCurrentPhase = 0;
+            startEnglishTimer();
+            
+            try {
+                const response = await fetch('/api/english-pipeline/run', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({test_cases_text: testCasesText, app_url: url, username, password})
+                });
+                
+                const streamReader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                
+                while (true) {
+                    const {done, value} = await streamReader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, {stream: true});
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                handleEnglishEvent(data);
+                            } catch(_) {}
+                        }
+                    }
+                }
+            } catch(err) {
+                logEnglish('system', 'Error: ' + err.message, 'error');
+            } finally {
+                englishRunning = false;
+                document.getElementById('btn-english-run').disabled = false;
+                document.getElementById('btn-english-stop').style.display = 'none';
+                stopEnglishTimer();
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    function handleEnglishEvent(ev) {
+        switch(ev.type) {
+            case 'phase_start':
+                if (englishCurrentPhase > 0) setEnglishPhase(englishCurrentPhase, 'completed');
+                englishCurrentPhase = ev.phase;
+                setEnglishPhase(ev.phase, 'active');
+                logEnglish('system', `Phase ${ev.phase} — ${ev.name}`, 'phase');
+                break;
+            case 'phase_end':
+                setEnglishPhase(ev.phase, ev.status === 'ok' ? 'completed' : 'failed');
+                if (ev.message) logEnglish('system', ev.message);
+                break;
+            case 'agent_message':
+                logEnglish(ev.agent, ev.content, '');
+                break;
+            case 'test_case_parsed':
+                logEnglish('parser', `Parsed: ${ev.test_id} - ${ev.title} (${ev.steps_count} steps)`);
+                break;
+            case 'test_formatted':
+                logEnglish('formatter', `Formatted: ${ev.test_id}`);
+                break;
+            case 'test_result':
+                addEnglishResult(ev.id, ev.title, ev.status);
+                break;
+            case 'test_summary':
+                logEnglish('system', `Summary: ${ev.total} total, ${ev.passed} passed, ${ev.failed} failed`, 'phase');
+                break;
+            case 'pipeline_complete':
+                logEnglish('system', `Complete — ${ev.summary}`, 'phase');
+                if (englishCurrentPhase > 0) setEnglishPhase(englishCurrentPhase, 'completed');
+                setTimeout(() => downloadEnglishReport(), 1000);
+                break;
+            case 'error':
+                logEnglish('system', ev.message, 'error');
+                break;
+        }
+    }
+    
+    function setEnglishPhase(n, state) {
+        const node = document.querySelector(`#english-pipeline-flow .flow-node[data-phase="${n}"]`);
+        if (!node) return;
+        node.className = 'flow-node ' + state;
+        if (state === 'active' || state === 'completed') {
+            const conn = document.querySelector(`#english-pipeline-flow .flow-connector[data-conn="${n-1}"]`);
+            if (conn) conn.className = 'flow-connector completed';
+        }
+        if (state === 'active') {
+            const conn = document.querySelector(`#english-pipeline-flow .flow-connector[data-conn="${n}"]`);
+            if (conn) conn.className = 'flow-connector active';
+        }
+    }
+    
+    function logEnglish(agent, msg, type) {
+        const el = document.getElementById('english-console');
+        if (el.querySelector('.console-empty')) el.innerHTML = '';
+        const div = document.createElement('div');
+        div.className = 'log-entry' + (type ? ' ' + type : '');
+        const ts = new Date().toLocaleTimeString('en-US', {hour12:false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        const agentCls = agent.includes('browser') ? 'browser' : agent.includes('parser') ? 'cyan' : agent === 'system' ? 'system' : 'orchestrator';
+        if (type === 'phase') {
+            div.innerHTML = `<span class="log-time">${ts}</span><span class="log-msg" style="color:var(--accent-1);font-weight:600;">${msg}</span>`;
+        } else {
+            div.innerHTML = `<span class="log-time">${ts}</span><span class="log-agent" style="color:var(--accent-3)">${agent}</span><span class="log-msg">${msg}</span>`;
+        }
+        el.appendChild(div);
+        el.scrollTop = el.scrollHeight;
+    }
+    
+    function clearEnglishConsole() {
+        document.getElementById('english-console').innerHTML = '<div class="console-empty">Ready to run test suite<span>Upload test file and configure application details</span></div>';
+    }
+    
+    function stopEnglishPipeline() {
+        fetch('/api/english-pipeline/stop', {method: 'POST'});
+    }
+    
+    function addEnglishResult(id, title, status) {
+        englishResults.push({id, title, status});
+    }
+    
+    function startEnglishTimer() {
+        englishStartTime = Date.now();
+    }
+    
+    function stopEnglishTimer() {
+        clearInterval(englishTimerRef);
+    }
+    
+    async function downloadEnglishReport() {
+        try {
+            const response = await fetch('/api/english-pipeline/report-preview');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                // Trigger download
+                const element = document.createElement('a');
+                const file = new Blob([data.html], {type: 'text/html'});
+                element.href = URL.createObjectURL(file);
+                element.download = `test_report_${new Date().toISOString().slice(0,10)}.html`;
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+                logEnglish('system', 'Report downloaded successfully', 'phase');
+            }
+        } catch(e) {
+            logEnglish('system', 'Error downloading report: ' + e.message, 'error');
+        }
+    }
+
     </script>
 </body>
 </html>

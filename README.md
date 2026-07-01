@@ -58,7 +58,8 @@ QA Maestro runs a **6-phase pipeline**:
 
 ```bash
 pip install agentic-qa-maestro    # or: uv tool install agentic-qa-maestro
-cp example.env .env               # add your Azure OpenAI + JIRA credentials
+qa-maestro init                   # scaffold application.yaml, .env, and app_flows/
+playwright install chromium       # required once for full browser E2E
 qa-maestro --ticket PROJ-123      # run against a ticket
 ```
 

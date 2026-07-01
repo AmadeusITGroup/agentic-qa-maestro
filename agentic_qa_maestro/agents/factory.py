@@ -160,7 +160,14 @@ def create_agent(
         agent_tools.extend(BROWSER_TOOLS)
         if get_current_time not in agent_tools:
             agent_tools.append(get_current_time)
-    elif agent_name in ("jira_agent", "orchestrator"):
+    elif agent_name == "orchestrator":
+        # Orchestrator needs both JIRA and browser tools so it can execute all
+        # pipeline phases directly without depending on GroupChat delegation routing.
+        agent_tools.extend(JIRA_TOOLS)
+        agent_tools.extend(BROWSER_TOOLS)
+        if get_current_time not in agent_tools:
+            agent_tools.append(get_current_time)
+    elif agent_name == "jira_agent":
         agent_tools.extend(JIRA_TOOLS)
         if get_current_time not in agent_tools:
             agent_tools.append(get_current_time)

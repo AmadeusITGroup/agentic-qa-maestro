@@ -19,13 +19,13 @@ from pydantic import Field
 def _get_jira_client() -> httpx.Client:
     """Return a configured sync httpx client for JIRA REST API."""
     base_url = os.environ.get("JIRA_BASE_URL", "")
-    token = os.environ.get("JIRA_API_TOKEN", "")
+    token = os.environ.get("JIRA_API_TOKEN") or os.environ.get("JIRA_PAT", "")
     verify_tls = os.environ.get("JIRA_VERIFY_TLS", "True").lower() in ("true", "1", "yes")
 
     if not base_url:
         raise ValueError("JIRA_BASE_URL environment variable is not set.")
     if not token:
-        raise ValueError("JIRA_API_TOKEN environment variable is not set.")
+        raise ValueError("JIRA_API_TOKEN or JIRA_PAT environment variable is not set.")
 
     verify: bool | ssl.SSLContext = verify_tls
     if verify_tls:
